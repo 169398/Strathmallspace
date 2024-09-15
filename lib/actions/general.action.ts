@@ -1,88 +1,97 @@
-'use server'
+"use server";
 
-import Tag from "@/database/tags.model";
-import { connectToDatabase } from "../mongoose";
+import { questions, users, answers, tags } from "@/db/schema"; 
+import {  ilike } from "drizzle-orm"; 
 import { SearchParams } from "./shared.types";
-import Answer from "@/database/answer.model";
-import User from "@/database/user.model";
-import Question from "@/database/question.model";
+import db from "@/db/drizzle";
 
- export async function globalSearch(params: SearchParams) {
-   const searchAbleTypes = ['question', 'user', 'answer', 'tag'];
-   try {
-    connectToDatabase();
+export async function globalSearch(params: SearchParams) {
+  const searchAbleTypes = ["question", "user", "answer", "tag"];
+
+  try {
     const { query, type } = params;
 
-    const regexQuery = { $regex: query, $options: 'i' };
+    const searchQuery = `%${query}%`;
 
-    let results = [];
+    let results: any[] = [];
 
     const modelsAndTypes = [
       {
-        model: Question,
-        searchField: 'title',
-        type: 'question'
+        table: questions,
+        searchField: questions.title,
+        type: "question",
       },
       {
-        model: User,
-        searchField: 'name',
-        type: 'user'
+        table: users,
+        searchField: users.name,
+        type: "user",
       },
       {
-        model: Answer,
-        searchField: 'content',
-        type: 'answer'
+        table: answers,
+        searchField: answers.content,
+        type: "answer",
       },
       {
-        model: Tag,
-        searchField: 'name',
-        type: 'tag'
+        table: tags,
+        searchField: tags.name,
+        type: "tag",
       },
-    ]
+    ];
 
     const typeLower = type?.toLowerCase();
 
-    if(!typeLower || !searchAbleTypes.includes(typeLower)) {
-      // search all types
-
-      for(const { model, searchField, type } of modelsAndTypes) {
-        const queryResults = await model
-          .find({[searchField]: regexQuery})
+    if (!typeLower || !searchAbleTypes.includes(typeLower)) {
+      // Search all types
+      for (const { table, searchField, type } of modelsAndTypes) {
+        const queryResults = await db
+          .select({ id: table.id, title: searchField })
+          .from(table)
+          .where(ilike(searchField, searchQuery))
           .limit(3);
 
         results.push(
           ...queryResults.map((item) => ({
-            title: type === 'answer' ? `Answers containing ${query}` : item[searchField],
-          type,
-          id: type === 'user' ? item.clerkId : type === 'answer' ? item.question : item._id
-          })
-        ));
+            title:
+              type === "answer" ? `Answers containing ${query}` : item.title,
+            type,
+            id:
+              type === "user"
+                ? item.id
+                : type === "answer"
+                  ? item.id
+                  : item.title,
+          }))
+        );
       }
-
     } else {
-      // search in specific type
-      const modelInfo = modelsAndTypes.find((item) => item.type === type);
+      // Search in specific type
+      const modelInfo = modelsAndTypes.find((item) => item.type === typeLower);
 
-      if(!modelInfo) {
-        throw new Error('Invalid search type');
+      if (!modelInfo) {
+        throw new Error("Invalid search type");
       }
 
-      const queryResults = await modelInfo.model
-        .find({[modelInfo.searchField]: regexQuery})
+      const queryResults = await db
+        .select({ id: modelInfo.table.id, title: modelInfo.searchField })
+        .from(modelInfo.table)
+        .where(ilike(modelInfo.searchField, searchQuery))
         .limit(10);
 
-        results = queryResults.map((item) => ({
-          title: type === 'answer' ? `Answers containing ${query}` : item[modelInfo.searchField],
-          type,
-          id: type === 'user' ? item.clerkId : type === 'answer' ? item.question : item._id
-
-        }));
+      results = queryResults.map((item) => ({
+        title: type === "answer" ? `Answers containing ${query}` : item.title,
+        type,
+        id:
+          type === "user"
+            ? item.id
+            : type === "answer"
+              ? item.title
+              : item.id,
+      }));
     }
 
     return JSON.stringify(results);
-
-   } catch (error) {
+  } catch (error) {
     console.log(error);
-    throw new Error('Failed to fetch global result');
-   }
- }
+    throw new Error("Failed to fetch global result");
+  }
+}

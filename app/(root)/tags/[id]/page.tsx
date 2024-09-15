@@ -8,7 +8,7 @@ import type { Metadata } from "next";
 
 
 export const metadata: Metadata = {
-  title: "CoderZHub | Tags",
+  title: "StrathSpace | Tags",
   description: "Questions associated with a tag.",
 };
 
