@@ -19,7 +19,7 @@ const LoadingBar = () => {
       router.events.off('routeChangeComplete', handleComplete);
       router.events.off('routeChangeError', handleComplete);
     };
-  }, []);
+  }, [router.events]);
 
   return loading ? <div className="loading-bar" /> : null;
 };

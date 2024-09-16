@@ -193,7 +193,7 @@ const Answers = ({ question, questionId, authorId }: AnswerProps) => {
                     }}
                   />
                 </FormControl>
-                <FormMessage className="text-error-700" />
+                <FormMessage className="text-red-700" />
               </FormItem>
             )}
           />

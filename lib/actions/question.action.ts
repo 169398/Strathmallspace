@@ -140,20 +140,60 @@ export async function getQuestionById(params: GetQuestionByIdParams) {
   try {
     const { questionId } = params;
 
+    // Fetch the question, along with the author, tags, and answer-related fields
     const question = await db
-      .select()
+      .select({
+        id: questions.id,
+        title: questions.title,
+        content: questions.content,
+        createdAt: questions.createdAt,
+        views: questions.views,
+        upvotes: questions.upvotes, 
+        downvotes: questions.downvotes, 
+        author: {
+          id: users.id,
+          clerkId: users.clerkId,
+          name: users.name,
+          picture: users.picture,
+        },
+        tags: {
+          id: tags.id,
+          name: tags.name,
+        },
+        answers: {
+          id: answers.id,
+          content: answers.content,
+          createdAt: answers.createdAt,
+          upvotes: answers.upvotes,
+          downvotes: answers.downvotes,
+        },
+      })
       .from(questions)
       .leftJoin(tags, eq(tags.id, questions.tagId))
       .leftJoin(users, eq(users.id, questions.authorId))
+      .leftJoin(answers, eq(answers.questionId, questions.id))
       .where(eq(questions.id, Number(questionId)))
       .execute();
 
-    return question[0];
+    const result = question[0];
+
+    // Check if upvotes or downvotes are null, and handle accordingly
+    const upvoteCount = result.upvotes ? result.upvotes.length : 0;
+    const downvoteCount = result.downvotes ? result.downvotes.length : 0;
+
+    // Return the question with the calculated counts
+    return {
+      ...result,
+      upvoteCount,
+      downvoteCount,
+    };
+
   } catch (error) {
-    console.error(`getQuestionById : ${error}`);
+    console.error(`getQuestionById: ${error}`);
     throw error;
   }
 }
+
 
 // Upvote a question
 export async function upvoteQuestion(params: QuestionVoteParams) {
@@ -308,7 +348,8 @@ export async function getRecommendedQuestions(params: RecommendedParams) {
 
     const userTags = userInteractions.map((interaction) => interaction.tags);
 
-    const distinctUserTagIds = [...new Set(userTags.filter(tag => tag !== null).map((tag) => tag.id))];
+    const distinctUserTagIds = [...new Set(userTags.filter((tag): tag is NonNullable<typeof tag> => tag !== null).map((tag) => tag.id))];
+
 
     const baseWhereClause = and(
       inArray(questions.tagId, distinctUserTagIds),

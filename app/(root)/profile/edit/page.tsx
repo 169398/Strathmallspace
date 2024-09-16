@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 
 
 export const metadata: Metadata = {
-  title: "CoderZHub | Edit Profile",
+  title: "StrathSpace | Edit Profile",
   description: "Edit your profile.",
 };
 
@@ -13,7 +13,7 @@ const Page = async ({ params }: any) => {
   const { userId } = auth();
   if (!userId) return null;
 
-  const mongoUser = await getUserById({ userId });
+  const mongoUser = await getUserById(userId);
   // const result = await getQuestionById({ questionId: params.id });
   return (
     <div>

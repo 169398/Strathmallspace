@@ -10,8 +10,9 @@ import type { Metadata } from "next";
 
 
 export const metadata: Metadata = {
-  title: "CoderZHub | Community",
-  description: "Explore all users on CoderZHub. Follow users and get updates on their activities.",
+  title: "StrathSpace | Community",
+  description:
+    "Explore all users on StrathSpace. Follow users and get updates on their activities.",
 };
 const Community = async ({ searchParams }: any) => {
   const result = await getAllUsers({
@@ -43,7 +44,18 @@ const Community = async ({ searchParams }: any) => {
 
       <div className="mt-12 flex flex-wrap gap-4">
         {result.users.length > 0 ? (
-          result.users.map((user) => <UserCard key={user._id} user={user} />)
+          result.users.map((user) => (
+            <UserCard
+              key={user.id}
+              user={{
+                _id: user.id.toString(),
+                clerkId: user.clerkId,
+                picture: user.picture,
+                name: user.name,
+                username: user.username,
+              }}
+            />
+          ))
         ) : (
           <NoResult
             title="No users found"

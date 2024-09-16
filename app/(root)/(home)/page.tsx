@@ -16,8 +16,8 @@ import type { Metadata } from "next";
 
 
 export const metadata: Metadata = {
-  title: "CoderZHub | Home",
-  description: "Explore all questions on CoderZHub. Ask a question and get answers from the community.",
+  title: "StrathSpace | Home",
+  description: "Explore all questions on StrathSpace. Ask a question and get answers from the community.",
 };
 
 export default async function Home({ searchParams }: any) {
@@ -79,7 +79,7 @@ export default async function Home({ searchParams }: any) {
           result.question.map((question: any) => (
             <QuestionCard
               key={question._id}
-              _id={question._id}
+              id={question._id}
               title={question.title}
               tags={question.tags}
               author={question.author}
@@ -92,8 +92,8 @@ export default async function Home({ searchParams }: any) {
           ))
         ) : (
           <NoResult
-            title="There’s no Question to show"
-            description={`${searchParams.f === 'recommended' ? 'Please interact with others questions to get recommended questions tailored to you 😉' : 'Be the first to break the silence! 🚀 Ask a Question and kickstart the discussion. our query could be the next big thing others learn from. Get involved!'}`}
+            title="There&apos;s no Question to show"
+            description={`${searchParams.f === 'recommended' ? 'Please interact with others questions to get recommended questions tailored to you 😉' : 'Be the first to break the silence! 🚀 Ask a Question and kickstart the discussion. our query could be the next big thing others learn from. Get involved'}`}
             hasButton={searchParams.f !== 'recommended'}
             btnText="Ask a Question"
             btnLink="/ask-question"

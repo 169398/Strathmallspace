@@ -20,9 +20,9 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: 'CoderZHub',
+  title: 'StrathSpace',
   description:
-    'CoderZHub is a community of developers for asking and answering programming questions. We are a community of like-minded people who want to learn, create, and grow together.',
+    'StrathSpace is a community of developers for asking and answering programming questions. We are a community of like-minded people who want to learn, create, and grow together.',
   icons: [],
 };
 

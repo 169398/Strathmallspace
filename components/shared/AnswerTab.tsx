@@ -1,7 +1,7 @@
-import { getUserAnswers } from '@/lib/actions/user.action';
-import AnswerCard from '../cards/AnswerCard';
-import NoResult from './NoResult';
-import Pagination from './Pagination';
+import { getUserAnswers } from "@/lib/actions/user.action";
+import AnswerCard from "../cards/AnswerCard";
+import NoResult from "./NoResult";
+import Pagination from "./Pagination";
 
 interface Props {
   searchParams: any;
@@ -15,20 +15,26 @@ const AnswerTab = async ({ searchParams, userId, clerkId }: Props) => {
     page: searchParams.page ? +searchParams.page : 1,
   });
 
-  // TODO: Add btnLink url (unanswered question)
-
   return (
     <div className="mt-10 flex w-full flex-col gap-6">
       {result.totalAnswers > 0 ? (
         result.answers.map((item) => (
           <AnswerCard
-            key={item._id}
+            key={item.id}
             clerkId={clerkId}
-            _id={item._id}
-            question={item.question}
-            author={item.author}
-            upvotes={item.upvotes.length}
-            createdAt={item.createdAt}
+            id={item.id.toString()}
+            question={{
+              id: item.question?.id?.toString() ?? '0',
+              title: item.question?.title ?? 'No title available'
+            }} 
+            author={{
+              id: item.author?.id?.toString() ?? '0',
+              clerkId: clerkId ?? '0',
+              name: item.author?.name ?? 'Anonymous',
+              picture: item.author?.picture ?? ''
+            }} 
+            upvotes={item.upvotes?.length ?? 0}
+            createdAt={item.createdAt ?? new Date()}
           />
         ))
       ) : (

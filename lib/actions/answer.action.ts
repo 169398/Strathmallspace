@@ -102,9 +102,20 @@ export async function getAnswers(params: GetAnswersParams) {
         break;
     }
 
-    // Fetch answers with pagination
+    // Fetch answers with pagination and author details (join with users)
     const answerList = await db
-      .select()
+      .select({
+        id: answers.id,
+        content: answers.content,
+        createdAt: answers.createdAt,
+        upvotes: answers.upvotes,
+        downvotes: answers.downvotes,
+        author: {
+          clerkId: users.clerkId,
+          name: users.name,
+          picture: users.picture,
+        },
+      })
       .from(answers)
       .where(eq(answers.questionId, Number(questionId)))
       .limit(pageSize)
@@ -113,6 +124,7 @@ export async function getAnswers(params: GetAnswersParams) {
       .leftJoin(users, eq(answers.authorId, users.id))
       .execute();
 
+    // Fetch the total count of answers
     const totalAnswers = await db
       .select({ count: sql`count(*)` })
       .from(answers)

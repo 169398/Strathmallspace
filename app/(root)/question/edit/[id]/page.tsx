@@ -6,7 +6,7 @@ import type { Metadata } from "next";
 
 
 export const metadata: Metadata = {
-  title: "CoderZHub | Edit Question",
+  title: "StrathSpace | Edit Question",
   description: "Edit a question.",
 };
 
@@ -14,7 +14,7 @@ const page = async ({ params }: any) => {
   const { userId } = auth();
   if (!userId) return null;
 
-  const mongoUser = await getUserById({ userId });
+  const mongoUser = await getUserById(userId);
   const result = await getQuestionById({ questionId: params.id });
   return (
     <div>
@@ -22,7 +22,7 @@ const page = async ({ params }: any) => {
       <div className="mt-9">
         <Question
           type="Edit"
-          mongoUserId={mongoUser._id}
+          mongoUserId={mongoUser.id.toString()}
           questionDetails={JSON.stringify(result)}
         />
       </div>

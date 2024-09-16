@@ -1,12 +1,12 @@
-import { AnswerFilters } from '@/constants/filters';
-import Filter from '@/components/shared/filter';
-import { getAnswer } from '@/lib/actions/answer.action';
-import Link from 'next/link';
-import Image from 'next/image';
-import { getTimeStamps } from '@/lib/utils';
-import ParseHtml from './ParseHtml';
-import Voting from './Voting';
-import Pagination from './Pagination';
+import { AnswerFilters } from "@/constants/filters";
+import Filter from "@/components/shared/filter";
+import { getAnswers } from "@/lib/actions/answer.action";
+import Link from "next/link";
+import Image from "next/image";
+import { getTimeStamps } from "@/lib/utils";
+import ParseHtml from "./ParseHtml";
+import Voting from "./Voting";
+import Pagination from "./Pagination";
 
 interface AllAnswerProps {
   questionId: string;
@@ -23,8 +23,7 @@ const AllAnswers = async ({
   page,
   filter,
 }: AllAnswerProps) => {
-  
-  const result = await getAnswer({
+  const result = await getAnswers({
     questionId,
     page: page ? +page : 1,
     sortBy: filter,
@@ -52,36 +51,38 @@ const AllAnswers = async ({
             <div key={answer.id} className="py-10">
               <div className="w-full">
                 <div className="flex-between mb-10">
-                  <Link
-                    href={`/profile/${answer.author.clerkId}`}
-                    className="flex flex-1 items-start gap-1 sm:items-center"
-                  >
-                    <Image
-                      src={answer.author.picture}
-                      alt="profile"
-                      width={18}
-                      height={18}
-                      className="rounded-full object-cover max-sm:mt-0.5"
-                    />
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <p className="body-semibold text-invert-2">
-                        {answer.author.name}{' '}
-                      </p>
-                      <p className="small-regular text-invert-3 mt-0.5 line-clamp-1">
-                        <span className="max-sm:hidden">&nbsp; - </span>
-                        &nbsp;Answered {getTimeStamps(answer.createdAt)}
-                      </p>
-                    </div>
-                  </Link>
+                  {answer.author && (
+                    <Link
+                      href={`/profile/${answer.author.clerkId}`}
+                      className="flex flex-1 items-start gap-1 sm:items-center"
+                    >
+                      <Image
+                        src={answer.author.picture}
+                        alt="profile"
+                        width={18}
+                        height={18}
+                        className="rounded-full object-cover max-sm:mt-0.5"
+                      />
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <p className="body-semibold text-invert-2">
+                          {answer.author.name}{" "}
+                        </p>
+                        <p className="small-regular text-invert-3 mt-0.5 line-clamp-1">
+                          <span className="max-sm:hidden">&nbsp; - </span>
+                          &nbsp;Answered {answer.createdAt ? getTimeStamps(answer.createdAt) : "Unknown time"}
+                        </p>
+                      </div>
+                    </Link>
+                  )}
                   <div className="flex justify-end">
                     <Voting
                       type="Answer"
-                      itemId={JSON.stringify(answer._id)}
+                      itemId={JSON.stringify(answer.id)}
                       userId={JSON.stringify(userId)}
-                      upvotes={answer.upvotes.length}
-                      hasUpvoted={answer.upvotes.includes(userId)}
-                      downvotes={answer.downvotes.length}
-                      hasDownvoted={answer.downvotes.includes(userId)}
+                      upvotes={answer.upvotes?.length || 0}
+                      hasUpvoted={answer.upvotes?.includes(Number(userId)) || false}
+                      downvotes={answer.downvotes?.length || 0}
+                      hasDownvoted={answer.downvotes?.includes(Number(userId)) ?? false}
                     />
                   </div>
                 </div>

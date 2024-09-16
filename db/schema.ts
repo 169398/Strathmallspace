@@ -22,8 +22,11 @@ export const users = pgTable("users", {
   portfolioWebsite: varchar("portfolio_website", { length: 255 }),
   reputation: integer("reputation").default(0),
   joinedAt: timestamp("joined_at").defaultNow(),
-  password: varchar("password", { length: 255 }), // optional
+  password: varchar("password", { length: 255 }), 
+
 });
+
+
 
 // Tags Table
 export const tags = pgTable("tags", {
@@ -33,6 +36,7 @@ export const tags = pgTable("tags", {
   description: text("description").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   questionCount: integer("question_count").default(0), 
+  questions: integer("questions").array().default([]),
 });
 
 // Questions Table

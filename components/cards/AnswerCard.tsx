@@ -7,13 +7,13 @@ import EditDeleteAction from '../shared/EditDeleteAction';
 
 interface Props {
   clerkId?: string | null;
-  _id: string;
+  id: string;
   question: {
-    _id: string;
+    id: string;
     title: string;
   };
   author: {
-    _id: string;
+    id: string;
     clerkId: string;
     name: string;
     picture: string;
@@ -24,7 +24,7 @@ interface Props {
 
 const AnswerCard = ({
   clerkId,
-  _id,
+  id,
   question,
   author,
   upvotes,
@@ -35,7 +35,7 @@ const AnswerCard = ({
 
   return (
     <Link
-      href={`/question/${question._id}/#${_id}`}
+      href={`/question/${question.id}/#${id}`}
       className="card-wrapper rounded-[10px] px-11 py-9"
     >
       <div className="flex flex-col-reverse items-start justify-between gap-5 sm:flex-row">
@@ -51,7 +51,7 @@ const AnswerCard = ({
         <SignedIn>
           {showActionButton && (
             <div>
-              <EditDeleteAction type="Answer" itemId={JSON.stringify(_id)} />
+              <EditDeleteAction type="Answer" itemId={JSON.stringify(id)} />
             </div>
           )}
         </SignedIn>

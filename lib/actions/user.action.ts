@@ -17,13 +17,20 @@ import { assignBadges } from "../utils";
 
 export async function getUserById(userId: string) {
   try {
-    // Querying by clerkId instead of id
+    // Query the user along with their saved questions
     const user = await db.query.users.findFirst({
       where: (users, { eq }) => eq(users.clerkId, userId),
+      with: {
+        savedQuestions: true, // Assuming savedQuestions is the table name
+      },
     });
 
     if (!user) throw new Error("User not found");
-    return user;
+
+    return {
+      ...user,
+      saved: user.savedQuestions.map((sq) => sq.questionId), 
+    };
   } catch (error) {
     console.error(error);
     throw error;
@@ -294,18 +301,27 @@ export async function getUserQuestions(params: GetUserStatsParams) {
       .where(eq(questions.authorId, Number(userId)));
 
     const totalQuestions = totalQuestionsResult[0]?.count ?? 0;
-    const questionsList = await db.query.questions.findMany({
-      where: (questions, { eq }) => eq(questions.authorId, Number(userId)),
-      offset,
-      limit: pageSize,
-    });
 
-    return { totalQuestions, questions: questionsList };
+    // Fetch questions and join with author data
+    const questionsList = await db
+      .query.questions.findMany({
+        where: (questions, { eq }) => eq(questions.authorId, Number(userId)),
+        offset,
+        limit: pageSize,
+        with: { author: true }, 
+      });
+
+    const isNextQuestions = questionsList.length === pageSize;
+
+    return { totalQuestions, questions: questionsList, isNextQuestions };
   } catch (error) {
     console.error(error);
     throw error;
   }
 }
+
+
+
 
 export async function getUserAnswers(params: GetUserStatsParams) {
   const { userId, page = 1, pageSize = 10 } = params;
@@ -320,15 +336,40 @@ export async function getUserAnswers(params: GetUserStatsParams) {
       .where(eq(answers.authorId, Number(userId)));
 
     const totalAnswers = totalAnswersResult[0]?.count ?? 0;
-    const answersList = await db.query.answers.findMany({
-      where: (answers, { eq }) => eq(answers.authorId, Number(userId)),
-      offset,
-      limit: pageSize,
-    });
 
-    return { totalAnswers, answers: answersList };
+    // Fetch answers with related question and author
+    const answersList = await db
+      .select({
+        id: answers.id,
+        content: answers.content,
+        createdAt: answers.createdAt,
+        upvotes: answers.upvotes,
+        downvotes: answers.downvotes,
+        question: {
+          id: questions.id,
+          title: questions.title,
+        },
+        author: {
+          id: users.id,
+          name: users.name,
+          picture: users.picture,
+        },
+      })
+      .from(answers)
+      .leftJoin(questions, eq(questions.id, answers.questionId))
+      .leftJoin(users, eq(users.id, answers.authorId))
+      .where(eq(answers.authorId, Number(userId)))
+      .offset(offset)
+      .limit(pageSize)
+      .execute();
+
+    // Check if there are more answers beyond the current page
+    const isNextAnswer = totalAnswers > page * pageSize;
+
+    return { totalAnswers, answers: answersList, isNextAnswer };
   } catch (error) {
     console.error(error);
     throw error;
   }
 }
+

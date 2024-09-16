@@ -19,16 +19,28 @@ const QuestionTab = async ({ searchParams, userId, clerkId }: Props) => {
       {result.questions.length > 0 ? (
         result.questions.map((question) => (
           <QuestionCard
-            key={question._id}
-            _id={question._id}
+            key={question.id}
+            id={question.id.toString()}
             clerkId={clerkId}
             title={question.title}
-            tags={question.tags}
-            author={question.author}
-            upvotes={question.upvotes}
-            views={question.views}
-            answers={question.answers}
-            createdAt={question.createdAt}
+            tags={question.tags?.map(tag => ({ id: tag.toString(), name: `Tag ${tag}` })) ?? []}
+            author={
+              question.author
+                ? {
+                    ...question.author,
+                    id: question.author.id.toString(),
+                  }
+                : {
+                    id: "",
+                    name: "Unknown",
+                    picture: "",
+                    clerkId: "",
+                  }
+            } 
+            upvotes={question.upvotes?.map(upvote => ({ id: upvote.toString() })) ?? []}
+            views={question.views ?? 0}
+            answers={question.answers?.map(answer => ({ id: answer.toString() })) ?? []}
+            createdAt={question.createdAt ?? new Date()}
           />
         ))
       ) : (
@@ -44,7 +56,7 @@ const QuestionTab = async ({ searchParams, userId, clerkId }: Props) => {
       <div className="mt-10 w-full items-center">
         <Pagination
           pageNumber={searchParams?.page ? +searchParams.page : 1}
-          isNext={result.isNextQuestions}
+          isNext={result.isNextQuestions} // Ensure isNextQuestions is passed
         />
       </div>
     </div>
