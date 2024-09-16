@@ -10,8 +10,8 @@ import type { Metadata } from "next";
 
 
 export const metadata: Metadata = {
-  title: "CoderZHub | collection",
-  description: "Explore all questions you saved on CoderZHub.",
+  title: "StrathSpace | collection",
+  description: "Explore all questions you saved on StrathSpace.",
 };
 
 export default async function Home({ searchParams }: any) {
@@ -24,7 +24,7 @@ export default async function Home({ searchParams }: any) {
     searchQuery: searchParams?.q,
     filter: searchParams?.filter,
     page: searchParams?.page ? +searchParams.page : 1,
-  });
+  }) as { question: any[], isNext: boolean };
   return (
     <main>
       <h1 className="sm:h1-bold h2-bold text-invert w-full">Saved Questions</h1>
@@ -48,7 +48,7 @@ export default async function Home({ searchParams }: any) {
           result.question.map((question: any) => (
             <QuestionCard
               key={question._id}
-              _id={question._id}
+              id={question._id}
               title={question.title}
               tags={question.tags}
               author={question.author}
@@ -61,8 +61,8 @@ export default async function Home({ searchParams }: any) {
           ))
         ) : (
           <NoResult
-            title="You haven’t saved any questions yet."
-            description="You haven’t saved any questions yet. Save Questions you would want to visit letter 💡"
+            title="You haven&apos;t saved any questions yet."
+            description="You haven&apos;t saved any questions yet. Save Questions you would want to visit letter 💡"
             hasButton={false}
           
           />

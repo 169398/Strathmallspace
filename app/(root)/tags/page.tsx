@@ -9,8 +9,7 @@ import type { Metadata } from "next";
 
 
 export const metadata: Metadata = {
-
-  title: "CoderZHub | Tags",
+  title: "StrathSpace | Tags",
   description: "Questions associated with a tag.",
 };
 
@@ -46,8 +45,8 @@ const Tags = async ({searchParams}: any) => {
         {result.tags.length > 0 ? (
           result.tags.map((tag) => (
             <Link
-              href={`/tags/${tag._id}`}
-              key={tag._id}
+              href={`/tags/${tag.id}`}
+              key={tag.id}
               className=" rounded-2xl shadow-sm"
             >
               <div className="card-wrapper flex w-full flex-col items-center rounded-2xl border px-5 py-10 sm:w-[260px] ">
@@ -56,7 +55,7 @@ const Tags = async ({searchParams}: any) => {
                 </div>
                 <p className="small-medium text-invert-3 mt-3.5">
                   <span className="body-semibold primary-text-gradient mr-2.5">
-                    {tag.questions.length}+
+                    {tag.questions?.length}+
                   </span>
                   Questions
                 </p>
@@ -65,8 +64,8 @@ const Tags = async ({searchParams}: any) => {
           ))
         ) : (
           <NoResult 
-            title='There’s no Tags to show'
-            description='Be the first to break the silence! 🚀 Ask a Question and kickstart the discussion. Your query could be the next big thing others learn from. Get involved! 💡'
+            title='There&apos;s no Tags to show'
+            description='Be the first to break the silence 🚀 Ask a Question and kickstart the discussion. Your query could be the next big thing others learn from. Get involved 💡'
             hasButton={true}
             btnText='Ask a Question'
             btnLink='/ask-question'

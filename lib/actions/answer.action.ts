@@ -1,191 +1,286 @@
-'use server';
+"use server";
 
-import Question from "@/database/question.model";
-import { connectToDatabase } from "../mongoose";
-import { AnswerVoteParams, CreateAnswerParams, DeleteAnswerParams, GetAnswersParams } from "./shared.types";
+import { answers, questions, interactions, users } from "@/db/schema"; 
+import {
+  AnswerVoteParams,
+  DeleteAnswerParams,
+  GetAnswersParams,
+} from "./shared.types";
 import { revalidatePath } from "next/cache";
-import Answer from "@/database/answer.model";
-import Interaction from "@/database/interaction.model";
-import User from "@/database/user.model";
-
-export async function createAnswer(params: CreateAnswerParams){
-
-    try {
-        connectToDatabase();
-        const { content, author, question, path } = params;
-        const newAnswer = await Answer.create({
-            content,
-            author,
-            question,
-        });
+import { eq, sql} from "drizzle-orm";
+import db from "@/db/drizzle";
 
 
-       // ? Add answers to question answer array.
+interface CreateAnswerParams {
+  content: string;
+  author: number; 
+  question: number; 
+  path: string; 
+}
+// Create an answer
+export async function createAnswer(params: CreateAnswerParams) {
+  try {
+    const { content, author, question, path } = params;
 
+    // Insert new answer
+    const newAnswer = await db
+      .insert(answers)
+      .values({
+        content, 
+        authorId: author, 
+        questionId: question, 
+      })
+      .returning()
+      .execute();
 
-        const answerObject = await Question.findByIdAndUpdate(question, {
+    // Update question's answer array
+    const questionObject = await db
+      .update(questions)
+      .set({
+        answers: sql`array_append(answers, ${newAnswer[0].id})`, 
+      })
+      .where(eq(questions.id, Number(question)))
+      .returning()
+      .execute();
 
-            $push: {answers: newAnswer._id}
+    // Create interaction record
+    await db
+      .insert(interactions)
+      .values({
+        userId: author, 
+        action: "answer", 
+        questionId: question, 
+        answerId: newAnswer[0].id, 
+        tags: questionObject[0].tags, 
+      })
+      .execute();
 
-        })
+    // Update user's reputation
+    await db
+      .update(users)
+      .set({
+        reputation: sql`${users.reputation} + 10`, 
+      })
+      .where(eq(users.id, Number(author)))
+      .execute();
 
-
-        await Interaction.create({
-            user: author,
-            action: 'answer',
-            question,
-            answer: newAnswer._id,
-            tags: answerObject.tags
-        });
-        
-
-        await User.findByIdAndUpdate(author, { $inc: { reputation: 10 } });
-
-    
-    
-        revalidatePath(path);
-        
-
-    } catch (error) {
-        console.log(error);
-        throw error;
-    }
+    // Revalidate the path
+    revalidatePath(path);
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
 }
 
 
-export async function getAnswer(params: GetAnswersParams){
- try {
-    connectToDatabase();
-    const { questionId, sortBy, page=1, pageSize=5 } = params;
+// Get answers for a question
+export async function getAnswers(params: GetAnswersParams) {
+  try {
+    const { questionId, sortBy, page = 1, pageSize = 5 } = params;
     const skipCount = (page - 1) * pageSize;
 
-    let sortOptions = {};
-
+    // Determine sorting options
+    let sortColumn: any = answers.createdAt;
+    let sortOrder = "desc";
+    
     switch (sortBy) {
-        case 'highestUpvotes':
-          sortOptions = { upvotes: -1}
-          break;
-        case 'lowestUpvotes':
-          sortOptions = { upvotes: 1}         
-          break;
-        case 'recent':
-          sortOptions = { createdAt: -1}  
-          break;
-        case 'old':
-          sortOptions = { createdAt: 1}  
-          break;     
-        default:
-          break;
-      }
+      case "highestUpvotes":
+        sortColumn = answers.upvotes;
+        sortOrder = "desc";
+        break;
+      case "lowestUpvotes":
+        sortColumn = answers.upvotes;
+        sortOrder = "asc";
+        break;
+      case "recent":
+        sortColumn = answers.createdAt;
+        sortOrder = "desc";
+        break;
+      case "old":
+        sortColumn = answers.createdAt;
+        sortOrder = "asc";
+        break;
+    }
 
-    const answers = await Answer.find({ question: questionId}).populate("author", "_id clerkId name picture")
-    .sort(sortOptions || {upvotes: -1})
-    .skip(skipCount)
-    .limit(pageSize);
+    // Fetch answers with pagination and author details (join with users)
+    const answerList = await db
+      .select({
+        id: answers.id,
+        content: answers.content,
+        createdAt: answers.createdAt,
+        upvotes: answers.upvotes,
+        downvotes: answers.downvotes,
+        author: {
+          clerkId: users.clerkId,
+          name: users.name,
+          picture: users.picture,
+        },
+      })
+      .from(answers)
+      .where(eq(answers.questionId, Number(questionId)))
+      .limit(pageSize)
+      .offset(skipCount)
+      .orderBy(sortColumn, sql`${sortOrder}`)
+      .leftJoin(users, eq(answers.authorId, users.id))
+      .execute();
 
+    // Fetch the total count of answers
+    const totalAnswers = await db
+      .select({ count: sql`count(*)` })
+      .from(answers)
+      .where(eq(answers.questionId, Number(questionId)))
+      .execute() as { count: number }[];
 
-    const totalAnswers = await Answer.countDocuments({question: questionId});
-    const isNextAnswer = totalAnswers > skipCount + answers.length;;
+    const isNextAnswer = totalAnswers[0].count > skipCount + answerList.length;
 
-    return { answers, isNextAnswer  };
-
- } catch (error) { 
-    console.log(error);
+    return { answers: answerList, isNextAnswer };
+  } catch (error) {
+    console.error(error);
     throw error;
- }
+  }
 }
 
-export async function upvoteAnswer(params: AnswerVoteParams){
-    try {
-        connectToDatabase();
-        const { answerId, userId, hasDownvoted, hasUpvoted, path } = params;
+// Upvote an answer
+export async function upvoteAnswer(params: AnswerVoteParams) {
+  try {
+    const { answerId, userId, hasDownvoted, hasUpvoted, path } = params;
 
-        let updateQuery = {};
-        
-        if(hasUpvoted){
-            updateQuery = { $pull: { upvotes: userId }};   
-        } else if(hasDownvoted){
-            updateQuery = {
-                $pull: { downvotes: userId },
-                $push: { upvotes: userId }
-            }
-        }
-        else {
-            updateQuery = {$addToSet: { upvotes: userId }}
-        }
-
-        const answer = await Answer.findByIdAndUpdate(answerId, updateQuery, { new:true});
-
-        if(!answer) throw new Error("Answer not found");
-
-        await User.findByIdAndUpdate(userId, {$inc: {reputation: hasUpvoted ? -2 : 2}})
-        await User.findByIdAndUpdate(answer.author, {$inc: {reputation: hasUpvoted ? -10 : 10 }})
-
-        revalidatePath(path);
- 
-    } catch (error) {
-        console.log(error);
-        throw error;
+    // Update votes based on the current status
+    if (hasUpvoted) {
+      await db
+        .update(answers)
+        .set({ upvotes: sql`array_remove(upvotes, ${userId})` })
+        .where(eq(answers.id, Number( answerId)))
+        .execute();
+    } else if (hasDownvoted) {
+      await db
+        .update(answers)
+        .set({
+          downvotes: sql`array_remove(downvotes, ${userId})`,
+          upvotes: sql`array_append(upvotes, ${userId})`,
+        })
+        .where(eq(answers.id, Number(answerId)))
+        .execute();
+    } else {
+      await db
+        .update(answers)
+        .set({ upvotes: sql`array_append(upvotes, ${userId})` })
+        .where(eq(answers.id, Number(answerId)))
+        .execute();
     }
+
+    // Update user's reputation
+    await db
+      .update(users)
+      .set({ reputation: sql`${users.reputation} + ${hasUpvoted ? -2 : 2}` })
+      .where(eq(users.id, Number(userId)))
+      .execute();
+
+    // Update answer author's reputation
+    const answer = await db
+      .select()
+      .from(answers)
+      .where(eq(answers.id, Number(answerId)))
+      .execute();
+    await db
+      .update(users)
+      .set({ reputation: sql`${users.reputation} + ${hasUpvoted ? -10 : 10}` })
+      .where(eq(users.id, answer[0].authorId))
+      .execute();
+
+    revalidatePath(path);
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
 }
 
+// Downvote an answer
+export async function downvoteAnswer(params: AnswerVoteParams) {
+  try {
+    const { answerId, userId, hasDownvoted, hasUpvoted, path } = params;
 
-export async function downvoteAnswer(params: AnswerVoteParams){ 
-    try {
-        connectToDatabase();
-        const { answerId, userId, hasDownvoted, hasUpvoted, path } = params;
-
-        let updateQuery = {};  
-        
-        if(hasDownvoted){
-            updateQuery = { $pull: { downvotes: userId }};   
-        } else if(hasUpvoted){
-            updateQuery = {
-                $pull: { upvotes: userId },
-                $push: { downvotes: userId }
-            }
-        }  
-        else {
-            updateQuery = {$addToSet: { downvotes: userId }}
-        }
-
-        const answer = await Answer.findByIdAndUpdate(answerId, updateQuery, { new:true});
-
-        if(!answer) throw new Error("Answer not found");
-
-        await User.findByIdAndUpdate(userId, {$inc: {reputation: hasDownvoted ? -2 : 2}})
-        await User.findByIdAndUpdate(answer.author, {$inc: {reputation: hasDownvoted ? -10 : 10 }})
-
-        revalidatePath(path);
-
-    } catch (error) {
-        console.log(error);
-        throw error;
+    // Update votes based on the current status
+    if (hasDownvoted) {
+      await db
+        .update(answers)
+        .set({ downvotes: sql`array_remove(downvotes, ${userId})` })
+        .where(eq(answers.id, Number(answerId)))
+        .execute();
+    } else if (hasUpvoted) {
+      await db
+        .update(answers)
+        .set({
+          upvotes: sql`array_remove(upvotes, ${userId})`,
+          downvotes: sql`array_append(downvotes, ${userId})`,
+        })
+        .where(eq(answers.id, Number(answerId)))
+        .execute();
+    } else {
+      await db
+        .update(answers)
+        .set({ downvotes: sql`array_append(downvotes, ${userId})` })
+        .where(eq(answers.id, Number(answerId)))
+        .execute();
     }
+
+    // Update user's reputation
+    await db
+      .update(users)
+      .set({ reputation: sql`${users.reputation} + ${hasDownvoted ? -2 : 2}` })
+      .where(eq(users.id, Number(userId)))
+      .execute();
+
+    // Update answer author's reputation
+    const answer = await db
+      .select()
+      .from(answers)
+      .where(eq(answers.id, Number(answerId)))
+      .execute();
+    await db
+      .update(users)
+      .set({
+        reputation: sql`${users.reputation} + ${hasDownvoted ? -10 : 10}`,
+      })
+      .where(eq(users.id, answer[0].authorId))
+      .execute();
+
+    revalidatePath(path);
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
 }
 
+// Delete an answer
+export async function deleteAnswer(params: DeleteAnswerParams) {
+  try {
+    const { answerId, path } = params;
 
-export async function deleteAnswer(params: DeleteAnswerParams){
-    try {
-        connectToDatabase();
-        const { answerId, path } = params;
+    // Find the answer
+    const answer = await db
+      .select()
+      .from(answers)
+      .where(eq(answers.id, Number(answerId)))
+      .execute();
 
-        const answer = await Answer.findById({_id: answerId})
+    if (!answer.length) throw new Error("Answer not found");
 
-        if(!answer){
-            throw new Error('Answer not found');
-        }
+    // Delete answer and related data
+    await db.delete(answers).where(eq(answers.id, Number(answerId))).execute();
+    await db
+      .update(questions)
+      .set({ answers: sql`array_remove(answers, ${answerId})` })
+      .where(eq(questions.id, answer[0].questionId))
+      .execute();
+    await db
+      .delete(interactions)
+      .where(eq(interactions.answerId, Number(answerId)))
+      .execute();
 
-        await answer.deleteOne({_id: answerId});
-
-        await Question.updateMany({_id: answer.question}, {$pull: {answers: answerId}})
-
-        await Interaction.deleteMany({answer: answerId})
-
-        revalidatePath(path)
-
-    } catch (error) {
-        console.log(error);
-        throw error; 
-    }
+    revalidatePath(path);
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
 }

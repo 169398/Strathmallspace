@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 
 export const metadata: Metadata = {
-  title: "CoderZHub | Sign In",
+  title: "StrathSpace | Sign In",
   description: "Sign in to your account",
 };
 

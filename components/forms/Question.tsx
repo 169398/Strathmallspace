@@ -25,10 +25,10 @@ import { useRouter, usePathname } from 'next/navigation';
 interface QuestionProps {
   type?: string;
   questionDetails?: string;
-  mongoUserId: string;
+  userId: string;
 }
 
-const Question = ({ type, mongoUserId, questionDetails }: QuestionProps) => {
+const Question = ({ type, userId, questionDetails }: QuestionProps) => {
   const editorRef = useRef(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
@@ -72,8 +72,9 @@ const Question = ({ type, mongoUserId, questionDetails }: QuestionProps) => {
           title: values.title,
           content: values.explanation,
           tags: values.tags,
-          author: JSON.parse(mongoUserId),
+          author: JSON.parse(userId),
           path: pathname,
+          tagId: values.title, 
         });
         router.push('/');
       }
@@ -146,7 +147,7 @@ const Question = ({ type, mongoUserId, questionDetails }: QuestionProps) => {
                 <FormDescription className="body-regular text-invert-3 mt-2.5 ">
                   Ask your question here.
                 </FormDescription>
-                <FormMessage className="text-error-700" />
+                <FormMessage className="text-red-700" />
               </FormItem>
             )}
           />
@@ -207,7 +208,7 @@ const Question = ({ type, mongoUserId, questionDetails }: QuestionProps) => {
                   you are, the better the answer you&apos;ll get. Imagine
                   you&apos;re asking a friend for help!
                 </FormDescription>
-                <FormMessage className="text-error-700" />
+                <FormMessage className="text-red-700" />
               </FormItem>
             )}
           />
@@ -261,7 +262,7 @@ const Question = ({ type, mongoUserId, questionDetails }: QuestionProps) => {
                   Add up to 3 tags that describe the problem you&apos;re facing.
                   Press Enter to add each tag.
                 </FormDescription>
-                <FormMessage className="text-error-700" />
+                <FormMessage className="text-red-700" />
               </FormItem>
             )}
           />

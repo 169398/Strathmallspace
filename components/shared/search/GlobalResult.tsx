@@ -1,33 +1,37 @@
-'use client';
-import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import Image from 'next/image';
-import GlobalFilters from './GlobalFilters';
-import { globalSearch } from '@/lib/actions/general.action';
+"use client";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
+import GlobalFilters from "./GlobalFilters";
+import { globalSearch } from "@/lib/actions/general.action";
 
 const GlobalResult = () => {
   const searchParams = useSearchParams();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState([]);
+  interface SearchResultItem {
+    id: string;
+    type: string;
+    title: string;
+  }
+  
+  const [result, setResult] = useState<SearchResultItem[]>([]);
 
-  const global = searchParams.get('global');
-  const type = searchParams.get('type');
+  const global = searchParams.get("global");
+  const type = searchParams.get("type");
 
   useEffect(() => {
-
     const fetchResult = async () => {
       setResult([]);
       setIsLoading(true);
 
       try {
-        // Fetch global result
+        // Fetch global result (assuming `globalSearch` returns an object)
         const res = await globalSearch({ query: global, type });
-        setResult(JSON.parse(res));
+        setResult(Array.isArray(res) ? res : []); // Ensure res is an array
       } catch (error) {
-        console.log(error);
-        throw new Error('Failed to fetch global result');
+        console.error("Error fetching global result:", error); // Better error logging
       } finally {
         setIsLoading(false);
       }
@@ -36,22 +40,20 @@ const GlobalResult = () => {
     if (global) {
       fetchResult();
     }
-    
   }, [global, type]);
 
   const renderLink = (type: string, id: string) => {
     switch (type) {
-      case 'question':
+      case "question":
         return `/question/${id}`;
-      case 'answer':
+      case "answer":
         return `/question/${id}`;
-      case 'user':
+      case "user":
         return `/profile/${id}`;
-      case 'tag':
+      case "tag":
         return `/tags/${id}`;
-
       default:
-        return '/';
+        return "/";
     }
   };
 
@@ -85,15 +87,15 @@ const GlobalResult = () => {
                 >
                   <Image
                     src={
-                      item.type === 'tag'
-                        ? '/assets/icons/tag.svg'
-                        : item.type === 'question'
-                          ? '/assets/icons/question.svg'
-                          : item.type === 'answer'
-                            ? '/assets/icons/answer.svg'
-                            : item.type === 'user'
-                              ? '/assets/icons/user.svg'
-                              : '/assets/icons/tag.svg'
+                      item.type === "tag"
+                        ? "/assets/icons/tag.svg"
+                        : item.type === "question"
+                        ? "/assets/icons/question.svg"
+                        : item.type === "answer"
+                        ? "/assets/icons/answer.svg"
+                        : item.type === "user"
+                        ? "/assets/icons/user.svg"
+                        : "/assets/icons/tag.svg"
                     }
                     alt="icon"
                     height={18}

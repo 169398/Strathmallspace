@@ -1,309 +1,294 @@
 /* eslint-disable no-unused-vars */
-"use server"
-import { FilterQuery, model } from "mongoose";
-import User from "@/database/user.model";
-import { connectToDatabase } from "../mongoose"
-import { CreateUserParams, DeleteUserParams, GetAllUsersParams, GetSavedQuestionsParams, GetUserByIdParams, GetUserInfoParams, UpdateUserParams, getUserSatesParams, toggleSaveQuestionParams } from "./shared.types";
+import db from "@/db/drizzle";
+import { questions, savedQuestions, users, answers } from "@/db/schema";
+import {
+  CreateUserParams,
+  DeleteUserParams,
+  GetAllUsersParams,
+  UpdateUserParams,
+  ToggleSaveQuestionParams,
+  GetSavedQuestionsParams,
+  GetUserInfoParams,
+  GetUserStatsParams,
+} from "./shared.types";
 import { revalidatePath } from "next/cache";
-import Question from "@/database/question.model";
-import Answer from "@/database/answer.model";
-import { skip } from "node:test";
-import { BadgeCriteriaType } from "@/types";
+import { eq, or, desc, asc, and, sql } from "drizzle-orm";
 import { assignBadges } from "../utils";
 
-export async function getUserById(params: GetUserByIdParams) {
+export async function getUserById(userId: string) {
   try {
-    connectToDatabase();
+    // Query the user along with their saved questions
+    const user = await db.query.users.findFirst({
+      where: (users, { eq }) => eq(users.clerkId, userId),
+      with: {
+        savedQuestions: true, // Assuming savedQuestions is the table name
+      },
+    });
 
-    const { userId } = params;
+    if (!user) throw new Error("User not found");
 
-    const user = await User.findOne({ clerkId: userId });
-
-    return user;
-    
+    return {
+      ...user,
+      saved: user.savedQuestions.map((sq) => sq.questionId), 
+    };
   } catch (error) {
-    console.log(error);
+    console.error(error);
     throw error;
   }
 }
+
+
 
 export async function createUser(userData: CreateUserParams) {
   try {
-    connectToDatabase();
-
-    const newUser = await User.create(userData);
+    // Log the incoming user data to ensure it's correct
+    console.log('Creating user with data:', userData);
+    
+    // Insert the user data into the users table
+    const newUser = await db
+      .insert(users)
+      .values(userData)
+      .returning(); // This returns the newly created record
+    
+    // Log the created user
+    console.log('New user created:', newUser);
 
     return newUser;
   } catch (error) {
-    console.log(error);
-    throw error;
+    // Detailed error logging
+    console.error('Error creating user:', error);
+    throw new Error('Failed to create user');
   }
 }
-
 export async function updateUser(params: UpdateUserParams) {
+  const { clerkId, updateData, path } = params;
+
   try {
-    connectToDatabase();
-
-    const { clerkId, updateData, path } = params;
-
-    await User.findOneAndUpdate({ clerkId }, updateData, {
-      new: true,
-    });
-
+    await db.update(users).set(updateData).where(eq(users.clerkId, clerkId));
     revalidatePath(path);
   } catch (error) {
-    console.log(error);
+    console.error(error);
     throw error;
   }
 }
 
 export async function deleteUser(params: DeleteUserParams) {
+  const { clerkId } = params;
+
   try {
-    connectToDatabase();
+    // Find the user
+    const user = await db.query.users.findFirst({
+      where: (users, { eq }) => eq(users.clerkId, clerkId),
+    });
 
-    const { clerkId } = params;
+    if (!user) throw new Error("User not found");
 
-    const user = await User.findOneAndDelete({ clerkId });
+    // Delete the user
+    await db.delete(users).where(eq(users.clerkId, clerkId));
 
-    if(!user) {
-      throw new Error('User not found');
-    }
+    // Optionally, delete related questions, answers, etc.
+    await db.delete(questions).where(eq(questions.authorId, user.id));
 
-    // Delete user from database
-    // and questions, answers, comments, etc.
-
-    // get user question ids
-    // const userQuestionIds = await Question.find({ author: user._id}).distinct('_id');
-
-    // delete user questions
-    await Question.deleteMany({ author: user._id });
-
-    // TODO: delete user answers, comments, etc.
-
-    const deletedUser = await User.findByIdAndDelete(user._id);
-
-    return deletedUser;
+    return user;
   } catch (error) {
-    console.log(error);
+    console.error(error);
     throw error;
   }
 }
 
-export async function  getAllUsers( params: GetAllUsersParams) {
+export async function getAllUsers(params: GetAllUsersParams) {
+  const { searchQuery, filter, page = 1, pageSize = 100 } = params;
+  const offset = (page - 1) * pageSize;
+
   try {
-    connectToDatabase();
-
-
-    // const { searchQuery, filter, page=1, pageSize=15 } = params;
-    // const skipCount = (page - 1) * pageSize;
-    // .skip(skipCount)
-    // .limit(pageSize)
-    // const totalQuestions = await Question.countDocuments(query);
-    // const isNext = totalQuestions > skipCount + question.length;
-
-    const { searchQuery, filter, page=1, pageSize=100 } = params;    
-    const query: FilterQuery<typeof User> = {}
-
-    let sortOptions = {};
-
-    switch (filter) {
-      case 'new_users':
-        sortOptions = { joinedAt: -1}
-        break;
-      case 'old_users':
-        sortOptions = { joinedAt: 1}
-        break;
-      case 'top_contributors':
-        sortOptions = { reputation: -1}
-        break;
-      default:
-        break;
-    }
-
+    const query = db.select().from(users);
 
     if (searchQuery) {
-      query.$or = [
-        {name: { $regex: new RegExp(searchQuery, 'i') }},
-        {username: { $regex: new RegExp(searchQuery, 'i') }},
-      ]
+      query.where(
+        or(
+          eq(users.name, `%${searchQuery}%`),
+          eq(users.username, `%${searchQuery}%`)
+        )
+      );
     }
 
-    const users = await User.find(query)
-      .sort(sortOptions)
-      .limit(pageSize)
+    const sortOptions = {};
+    switch (filter) {
+      case "new_users":
+        query.orderBy(desc(users.joinedAt));
+        break;
+      case "old_users":
+        query.orderBy(asc(users.joinedAt));
+        break;
+      case "top_contributors":
+        query.orderBy(desc(users.reputation));
+        break;
+    }
 
-
-      
-    const totalUsers = await Question.countDocuments(query);    
-    return { users };
-
+    const usersList = await query.offset(offset).limit(pageSize);
+    return { users: usersList };
   } catch (error) {
-    console.log(error);
+    console.error(error);
     throw error;
   }
 }
 
-export async function toggleSaveQuestion(params: toggleSaveQuestionParams) {
+export async function toggleSaveQuestion(params: ToggleSaveQuestionParams) {
+  const { userId, questionId, path } = params;
+
   try {
-    connectToDatabase();
+    const existing = await db.query.savedQuestions.findFirst({
+      where: (savedQuestions, { eq, and }) =>
+        and(
+          eq(savedQuestions.userId, Number(userId)),
+          eq(savedQuestions.questionId, Number(questionId))
+        ),
+    });
 
-    const { userId, questionId, path } = params;
-
-    const user = await User.findById(userId);
-
-    if(!user) throw new Error('User not found');
-
-    const isSaved = user.saved.includes(questionId);
-
-    if(isSaved) {
-      await User.findByIdAndUpdate(userId, {
-        $pull: {  saved: questionId }
-      }, { new: true });
-    } else   {
-      await User.findByIdAndUpdate(userId, {
-        $addToSet: {  saved: questionId }
-      }, { new: true });
+    if (existing) {
+      await db
+        .delete(savedQuestions)
+        .where(
+          and(
+            eq(savedQuestions.userId, Number(userId)),
+            eq(savedQuestions.questionId, Number(questionId))
+          )
+        );
+    } else {
+      await db
+        .insert(savedQuestions)
+        .values([{ userId: Number(userId), questionId: Number(questionId) }]);
     }
 
     revalidatePath(path);
-
   } catch (error) {
-    console.log(error);
+    console.error(error);
     throw error;
   }
 }
-
-export async function getSavedQuestions(params: GetSavedQuestionsParams){
-
+export async function getSavedQuestions(params: GetSavedQuestionsParams) {
+  const { clerkId, searchQuery, filter, page = 1, pageSize = 15 } = params;
+  const offset = (page - 1) * pageSize;
 
   try {
-    connectToDatabase();
+    // Fetch the user based on clerkId
+    const user = await db.query.users.findFirst({
+      where: (users, { eq }) => eq(users.clerkId, clerkId),
+    });
 
+    if (!user) {
+      return { question: [] };
+    }
 
-    const { clerkId, searchQuery, filter, page=1, pageSize=15 } = params;
+    const filters: any = { authorId: user.id };
 
-    const skipCount = (page - 1) * pageSize;
-       
-    const query: FilterQuery<typeof Question> = searchQuery
-    ? { title: { $regex: new RegExp(searchQuery, 'i')} } 
-    :{};
+    if (searchQuery) {
+      filters.title = { $ilike: `%${searchQuery}%` };
+    }
 
-    let sortOptions = {};
+    let orderBy: any;
     switch (filter) {
-      case 'most_recent':
-        sortOptions = { createdAt: -1}
+      case "most_recent":
+        orderBy = { createdAt: "desc" };
         break;
-      case 'oldest':
-        sortOptions = { createdAt: 1}  
+      case "oldest":
+        orderBy = { createdAt: "asc" };
         break;
-      case 'most_voted':
-        sortOptions = { upvotes: -1}
+      case "most_voted":
+        orderBy = { upvotes: "desc" };
         break;
-      case 'most_viewed':
-        sortOptions = { views: -1}
+      case "most_viewed":
+        orderBy = { views: "desc" };
         break;
-      case 'most_answered':
-        sortOptions = { answers: -1}
-        break;
-    
       default:
-        break;
-    }   
-    const user = await User.findOne({ clerkId })
-      .populate({
-        path: 'saved',
-        match: query,
-        options: {
-          sort: sortOptions,
-          skip: skipCount,
-          limit: pageSize + 1,
-        },
-        populate: [
-          {path: 'tags', model: 'Tag', select: "_id name"},
-          {path: 'author', model: 'User', select: "_id name username picture clerkId"  }
-        ]
-      })
+        orderBy = { createdAt: "desc" };
+    }
 
-      if(!user) throw new Error('User not found');     
-      const savedQuestions = user.saved;
-      const isNext = user.saved.length > pageSize;
-      return { question: savedQuestions, isNext, user};
+    const savedQuestions = await db.query.questions.findMany({
+      where: filters,
+      orderBy,
+      limit: pageSize,
+      offset,
+    });
 
+    return { question: savedQuestions };
   } catch (error) {
-    console.log(error);
+    console.error(error);
     throw error;
   }
 }
 
-export async function getUserInfo(params: GetUserInfoParams){
+export async function getUserInfo(params: GetUserInfoParams) {
+  const { userId } = params;
+
   try {
-    connectToDatabase();
+    // Find the user by clerkId
+    const user = await db.query.users.findFirst({
+      where: (users, { eq }) => eq(users.clerkId, userId),
+    });
 
-    const { userId } = params;
+    if (!user) throw new Error("User not found");
 
-    const user = await User.findOne({clerkId: userId})
+    // Count total questions authored by the user
+    const totalQuestionsResult = await db
+      .select({
+        count: sql<number>`count(${questions.authorId})`.mapWith(Number),
+      })
+      .from(questions)
+      .where(eq(questions.authorId, user.id));
 
-    if(!user) throw Error('user not found');
+    const totalQuestions = totalQuestionsResult[0]?.count ?? 0;
 
-    const totalQuestions = await Question.countDocuments({author: user._id})
-    const totalAnswers = await Answer.countDocuments({author: user._id});
-    const [questionUpvotes] = await Question.aggregate([
-      {$match: { author: user._id }},
-      {$project: {
-        _id: 0,
-        upvotes: { $size: "$upvotes"}
-      }},
-      {$group: {
-        _id: null,
-        totalUpvotes: {$sum: "$upvotes"}
-      }}
-    ]);
+    // Count total answers authored by the user
+    const totalAnswersResult = await db
+      .select({
+        count: sql<number>`count(${answers.authorId})`.mapWith(Number),
+      })
+      .from(answers)
+      .where(eq(answers.authorId, user.id));
 
-    const [answerUpvotes] = await Answer.aggregate([
-      {$match: { author: user._id }},
-      {$project: {
-        _id: 0,
-        upvotes: { $size: "$upvotes"}
-      }},
-      {$group: {
-        _id: null,
-        totalUpvotes: {$sum: "$upvotes"}
-      }}
-    ])
+    const totalAnswers = totalAnswersResult[0]?.count ?? 0;
 
-    const [questionViews] = await Answer.aggregate([
-      {$match: { author: user._id }},
-      {$group: {
-        _id: null,
-        totalViews: {$sum: "$views"}
-      }}
-    ])
+    // Sum upvotes for questions authored by the user
+    const questionUpvotesResult = await db
+      .select({
+        sum: sql<number>`sum(${questions.upvotes})`.mapWith(Number),
+      })
+      .from(questions)
+      .where(eq(questions.authorId, user.id));
 
-    const criteria = [
-      {
-        type: 'QUESTION_COUNT' as BadgeCriteriaType,
-        count: totalQuestions
-      },
-      {
-        type: 'ANSWER_COUNT' as BadgeCriteriaType,
-        count: totalAnswers
-      },
-      {
-        type: 'QUESTION_UPVOTES' as BadgeCriteriaType,
-        count: questionUpvotes?.totalUpvotes || 0
-      },
-      {
-        type: 'ANSWER_UPVOTES' as BadgeCriteriaType,
-        count: answerUpvotes?.totalUpvotes || 0
-      },
-      {
-        type: 'TOTAL_VIEWS' as BadgeCriteriaType,
-        count: questionViews?.totalViews || 0
-      },
-    ]
+    const questionUpvotes = questionUpvotesResult[0]?.sum ?? 0;
 
-    const badgeCounts = assignBadges({ criteria });
+    // Sum upvotes for answers authored by the user
+    const answerUpvotesResult = await db
+      .select({
+        sum: sql<number>`sum(${answers.upvotes})`.mapWith(Number),
+      })
+      .from(answers)
+      .where(eq(answers.authorId, user.id));
 
+    const answerUpvotes = answerUpvotesResult[0]?.sum ?? 0;
+
+    // Sum views for questions authored by the user
+    const questionViewsResult = await db
+      .select({
+        sum: sql<number>`sum(${questions.views})`.mapWith(Number),
+      })
+      .from(questions)
+      .where(eq(questions.authorId, user.id));
+
+    const questionViews = questionViewsResult[0]?.sum ?? 0;
+
+    // Badge assignment logic (based on your existing function)
+    const badgeCounts = assignBadges({
+      criteria: [
+        { type: "QUESTION_COUNT", count: totalQuestions },
+        { type: "ANSWER_COUNT", count: totalAnswers },
+        { type: "QUESTION_UPVOTES", count: questionUpvotes },
+        { type: "ANSWER_UPVOTES", count: answerUpvotes },
+        { type: "TOTAL_VIEWS", count: questionViews },
+      ],
+    });
 
     return {
       user,
@@ -311,73 +296,96 @@ export async function getUserInfo(params: GetUserInfoParams){
       totalQuestions,
       badgeCounts,
       reputation: user.reputation,
-    }
-
-     
-
+    };
   } catch (error) {
-    console.log(error)
-    throw error
+    console.error(error);
+    throw error;
   }
 }
 
-export async function getUserQuestions(params: getUserSatesParams){
+
+export async function getUserQuestions(params: GetUserStatsParams) {
+  const { userId, page = 1, pageSize = 10 } = params;
+  const offset = (page - 1) * pageSize;
+
   try {
-    connectToDatabase();
-    const { userId, page=1, pageSize=10 } = params;
+    const totalQuestionsResult = await db
+      .select({
+        count: sql<number>`count(${questions.id})`.mapWith(Number),
+      })
+      .from(questions)
+      .where(eq(questions.authorId, Number(userId)));
 
-    const skipCount = (page - 1) * pageSize;
-    
+    const totalQuestions = totalQuestionsResult[0]?.count ?? 0;
 
-    const totalQuestions = await Question.countDocuments({author: userId});
+    // Fetch questions and join with author data
+    const questionsList = await db
+      .query.questions.findMany({
+        where: (questions, { eq }) => eq(questions.authorId, Number(userId)),
+        offset,
+        limit: pageSize,
+        with: { author: true }, 
+      });
 
-    const userQuestions = await Question.find({author: userId})
-      .sort({createdAt: -1, views: -1, upvotes: -1})
-      .skip(skipCount)
+    const isNextQuestions = questionsList.length === pageSize;
+
+    return { totalQuestions, questions: questionsList, isNextQuestions };
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+}
+
+
+
+
+export async function getUserAnswers(params: GetUserStatsParams) {
+  const { userId, page = 1, pageSize = 10 } = params;
+  const offset = (page - 1) * pageSize;
+
+  try {
+    const totalAnswersResult = await db
+      .select({
+        count: sql<number>`count(${answers.id})`.mapWith(Number),
+      })
+      .from(answers)
+      .where(eq(answers.authorId, Number(userId)));
+
+    const totalAnswers = totalAnswersResult[0]?.count ?? 0;
+
+    // Fetch answers with related question and author
+    const answersList = await db
+      .select({
+        id: answers.id,
+        content: answers.content,
+        createdAt: answers.createdAt,
+        upvotes: answers.upvotes,
+        downvotes: answers.downvotes,
+        question: {
+          id: questions.id,
+          title: questions.title,
+        },
+        author: {
+          id: users.id,
+          name: users.name,
+          picture: users.picture,
+        },
+      })
+      .from(answers)
+      .leftJoin(questions, eq(questions.id, answers.questionId))
+      .leftJoin(users, eq(users.id, answers.authorId))
+      .where(eq(answers.authorId, Number(userId)))
+      .offset(offset)
       .limit(pageSize)
-      .populate('tags', '_id name')
-      .populate({ path: 'author', model: User });
+      .execute();
 
-      const isNextQuestions = totalQuestions > skipCount + userQuestions.length;
-   
+    // Check if there are more answers beyond the current page
+    const isNextAnswer = totalAnswers > page * pageSize;
 
-      
-      return { 
-        totalQuestions, questions: userQuestions,
-        isNextQuestions
-      }
+    return { totalAnswers, answers: answersList, isNextAnswer };
   } catch (error) {
-    console.log(error)
-    throw error
+    console.error(error);
+    throw error;
   }
 }
 
-export async function getUserAnswers(params: getUserSatesParams){
-  try {
-    connectToDatabase();
-
-
-    const { userId, page=1, pageSize=10 } = params;
-    const skipCount = (page - 1) * pageSize;
-
-    const totalAnswers = await Answer.countDocuments({author: userId});
-
-    const userAnswers = await Answer.find({author: userId})
-      .sort({ upvotes: -1})
-      .populate('question', '_id name title')
-      .populate('author', '_id clerkId, name picture upvotes createdAt')
-      .skip(skipCount)
-      .limit(pageSize);
-
-      const isNextAnswer = totalAnswers > skipCount + userAnswers.length;
-
-      
-      return { 
-        totalAnswers, answers: userAnswers,
-        isNextAnswer
-      }
-  } catch (error) {
-    console.log(error)
-    throw error
-  }
-}

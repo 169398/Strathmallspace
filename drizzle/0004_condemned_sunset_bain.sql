@@ -1,0 +1,1 @@
+ALTER TABLE "interactions" ADD COLUMN "tags" integer[] DEFAULT '{}';

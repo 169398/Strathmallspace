@@ -14,7 +14,7 @@ import type { Metadata } from "next";
 
 
 export const metadata: Metadata = {
-  title: "CoderZHub | Question",
+  title: "StrathSpace | Question",
   description: "View a question, and answer it.",
 };
 
@@ -23,7 +23,7 @@ const Page = async ({ params, searchParams }: any) => {
   let mongoUser;
 
   if (clerkId) {
-    mongoUser = await getUserById({ userId: clerkId });
+    mongoUser = await getUserById(clerkId);
   }
 
   const result = await getQuestionById({ questionId: params.id });
@@ -34,29 +34,37 @@ const Page = async ({ params, searchParams }: any) => {
         <div className="flex w-full flex-col-reverse justify-between gap-5 sm:flex-row sm:items-center sm:gap-2">
           <Link
             className="flex items-center justify-start gap-1"
-            href={`/profile/${result.author.clerkId}`}
+            href={`/profile/${result.author?.clerkId}`}
           >
             <Image
               className="rounded-full"
-              src={result.author.picture}
-              alt={result.author.name}
+              src={result.author?.picture!}
+              alt={result.author?.name!}
               width={20}
               height={20}
             />
             <p className="paragraph-semibold text-invert primary-text-gradient">
-              {result.author.name}
+              {result.author?.name}
             </p>
           </Link>
           <div className="flex justify-end">
             <Voting
               type="Question"
-              itemId={JSON.stringify(result._id)}
-              userId={JSON.stringify(mongoUser._id)}
-              upvotes={result.upvotes.length}
-              hasUpvoted={result.upvotes.includes(mongoUser._id)}
-              downvotes={result.downvotes.length}
-              hasDownvoted={result.downvotes.includes(mongoUser._id)}
-              hasSaved={mongoUser?.saved.includes(result._id)}
+              itemId={JSON.stringify(result.id)}
+              userId={mongoUser ? JSON.stringify(mongoUser.id) : ""}
+              upvotes={result.upvotes?.length ?? 0}
+              hasUpvoted={
+                mongoUser
+                  ? result.upvotes?.includes(mongoUser.id) ?? false
+                  : false
+              }
+              downvotes={result.downvotes?.length ?? 0}
+              hasDownvoted={
+                mongoUser
+                  ? result.downvotes?.includes(mongoUser.id) ?? false
+                  : false
+              }
+              hasSaved={mongoUser?.saved?.includes(result.id) ?? false}
             />
           </div>
         </div>
@@ -71,49 +79,54 @@ const Page = async ({ params, searchParams }: any) => {
           alt="Clock"
           title=""
           textStyles="small-medium card-text-invert-secondary"
-          value={` Asked ${getTimeStamps(result.createdAt)}`}
+          value={` Asked ${
+            result.createdAt ? getTimeStamps(result.createdAt) : "Unknown time"
+          }`}
         />
         <Metric
           imgUrl="/assets/icons/message.svg"
           alt="message"
           title="Answers"
           textStyles="small-medium card-text-invert-secondary"
-          value={formatNumber(result.answers.length)}
+          value={formatNumber(
+            Array.isArray(result.answers) ? result.answers.length : 0
+          )}
         />
         <Metric
           imgUrl="/assets/icons/eye.svg"
           alt="eye"
           title="Views"
           textStyles="small-medium card-text-invert-secondary"
-          value={formatNumber(result.views)}
+          value={formatNumber(result.views ?? 0)}
         />
       </div>
 
       <ParseHtml content={result.content} />
 
       <div className="mt-8 flex flex-wrap gap-2">
-        {result.tags.map((tag: any) => (
-          <RenderTags
-            key={tag._id}
-            _id={tag._id}
-            name={tag.name}
-            showCount={false}
-          />
-        ))}
+        {Array.isArray(result.tags) &&
+          result.tags.map((tag: any) => (
+            <RenderTags
+              key={tag._id}
+              _id={tag._id}
+              name={tag.name}
+              showCount={false}
+            />
+          ))}
       </div>
 
       <Answer
         question={result.content}
-        questionId={JSON.stringify(result._id)}
-        authorId={JSON.stringify(mongoUser._id)}
+        questionId={JSON.stringify(result.id)}
+        authorId={mongoUser ? JSON.stringify(mongoUser.id) : ""}
       />
 
       <AllAnswers
-        questionId={result._id}
-        userId={mongoUser._id}
-        totalAnswers={result.answers.length}
-        page={searchParams?.page}
-        filter={searchParams?.filter}
+        questionId={result.id.toString()}
+        userId={mongoUser ? mongoUser.id.toString() : ""}
+        totalAnswers={Array.isArray(result.answers) ? result.answers.length : 0}
+        page={searchParams?.page || 1} 
+        filter={searchParams?.filter || ""} 
       />
     </>
   );

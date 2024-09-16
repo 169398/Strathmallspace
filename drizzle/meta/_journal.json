@@ -1,0 +1,55 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1726459828848,
+      "tag": "0000_eager_stardust",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1726461784773,
+      "tag": "0001_typical_malcolm_colcord",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1726464588636,
+      "tag": "0002_tricky_shen",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1726471925048,
+      "tag": "0003_outstanding_silhouette",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1726474443523,
+      "tag": "0004_condemned_sunset_bain",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1726475551351,
+      "tag": "0005_eager_dormammu",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1726488873974,
+      "tag": "0006_hot_toad",
+      "breakpoints": true
+    }
+  ]
+}

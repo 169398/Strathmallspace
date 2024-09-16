@@ -14,7 +14,7 @@ import type { Metadata } from "next";
 
 
 export const metadata: Metadata = {
-  title: "CoderZHub | profile",
+  title: "StrathSpace | profile",
   description: "View user profile.",
 };
 
@@ -58,7 +58,7 @@ const Profile = async ({ params, searchParams }: any) => {
 
               <ProfileLink
                 imgUrl="/assets/icons/calendar.svg"
-                title={getJoinedMonthYear(userInfo.user.joinedAt)}
+                title={userInfo.user.joinedAt ? getJoinedMonthYear(userInfo.user.joinedAt) : 'Date not available'}
               />
             </div>
 
@@ -86,7 +86,7 @@ const Profile = async ({ params, searchParams }: any) => {
       </div>
 
       <States
-        reputation={userInfo.reputation}
+        reputation={userInfo.reputation ?? 0}
         totalQuestions={userInfo.totalQuestions}
         totalAnswers={userInfo.totalAnswers}
         badges={userInfo.badgeCounts}
@@ -104,14 +104,14 @@ const Profile = async ({ params, searchParams }: any) => {
           <TabsContent value="top-posts">
             <QuestionTab
               searchParams={searchParams}
-              userId={userInfo.user._id}
+              userId={userInfo.user.id.toString()}
               clerkId={clerkId}
             />
           </TabsContent>
           <TabsContent value="answers">
             <AnswerTab
               searchParams={searchParams}
-              userId={userInfo.user._id}
+              userId={userInfo.user.id.toString()}
               clerkId={clerkId}
             />
           </TabsContent>

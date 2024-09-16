@@ -24,17 +24,20 @@ const MobileNav = () => {
             className="invert-colors ml-2 sm:hidden"
           />
         </SheetTrigger>
-        <SheetContent side="left" className="background-navbar_bg border-none backdrop-blur-lg">
+        <SheetContent
+          side="left"
+          className="background-navbar_bg border-none backdrop-blur-lg"
+        >
           <Link href="/" className="flex-center flex items-center gap-1">
-            <Image
+            {/* <Image
               src="/assets/images/logo.svg"
               height={23}
               width={23}
-              alt="CoderZHub"
-            />
+              alt="StrathSpace"
+            /> */}
 
             <p className="h2-bold text-invert font-spaceGrotesk">
-              CoderZ<span className="primary-text-gradient">Hub</span>
+              <span className="primary-text-gradient">StrathSpace</span>
             </p>
           </Link>
           <div>
