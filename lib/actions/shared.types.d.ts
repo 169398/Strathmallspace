@@ -55,6 +55,8 @@ export interface CreateQuestionParams {
   tags: string[]; // List of tag IDs or names
   author: string; // Should reference a user ID
   path: string;
+  tagId: string;
+  
 }
 
 // Voting on an answer

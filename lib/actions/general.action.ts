@@ -1,7 +1,7 @@
 "use server";
 
-import { questions, users, answers, tags } from "@/db/schema"; 
-import {  ilike } from "drizzle-orm"; 
+import { questions, users, answers, tags } from "@/db/schema"; // Assuming these are your table schemas
+import {  ilike  } from "drizzle-orm";
 import { SearchParams } from "./shared.types";
 import db from "@/db/drizzle";
 
@@ -10,11 +10,10 @@ export async function globalSearch(params: SearchParams) {
 
   try {
     const { query, type } = params;
+    const searchQuery = `%${query}%`; // SQL LIKE pattern for partial matching
+    let results = [];
 
-    const searchQuery = `%${query}%`;
-
-    let results: any[] = [];
-
+    // Define models and their corresponding fields for search
     const modelsAndTypes = [
       {
         table: questions,
@@ -44,7 +43,11 @@ export async function globalSearch(params: SearchParams) {
       // Search all types
       for (const { table, searchField, type } of modelsAndTypes) {
         const queryResults = await db
-          .select({ id: table.id, title: searchField })
+          .select({
+            title: searchField,
+            id: type === "user" ? users.clerkId : questions.id,
+            question: answers.questionId, 
+          })
           .from(table)
           .where(ilike(searchField, searchQuery))
           .limit(3);
@@ -58,13 +61,13 @@ export async function globalSearch(params: SearchParams) {
               type === "user"
                 ? item.id
                 : type === "answer"
-                  ? item.id
-                  : item.title,
+                  ? item.question
+                  : item.id,
           }))
         );
       }
     } else {
-      // Search in specific type
+      // Search specific type
       const modelInfo = modelsAndTypes.find((item) => item.type === typeLower);
 
       if (!modelInfo) {
@@ -72,19 +75,24 @@ export async function globalSearch(params: SearchParams) {
       }
 
       const queryResults = await db
-        .select({ id: modelInfo.table.id, title: modelInfo.searchField })
+        .select({
+          title: modelInfo.searchField,
+          id: typeLower === "user" ? modelInfo.searchField : typeLower === "answer" ? answers.questionId : modelInfo.searchField, 
+          question: answers.questionId, 
+        })
         .from(modelInfo.table)
         .where(ilike(modelInfo.searchField, searchQuery))
         .limit(10);
 
       results = queryResults.map((item) => ({
-        title: type === "answer" ? `Answers containing ${query}` : item.title,
-        type,
+        title:
+          typeLower === "answer" ? `Answers containing ${query}` : item.title,
+        type: typeLower,
         id:
-          type === "user"
+          typeLower === "user"
             ? item.id
-            : type === "answer"
-              ? item.title
+            : typeLower === "answer"
+              ? item.question
               : item.id,
       }));
     }

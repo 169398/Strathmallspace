@@ -1,199 +1,164 @@
+/* eslint-disable no-unused-vars */
 "use server";
 
-import {
-  tags,
-  questions,
-  interactions,
-  users,
-  questionTags,
-} from "@/db/schema";
+import { tags, questions, users, interactions } from "@/db/schema";
+import { eq, inArray, like, desc, asc, sql } from "drizzle-orm";
 import {
   GetAllTagsParams,
   GetTopInteractedTagsParams,
   GetQuestionByTagIdParams,
 } from "./shared.types";
-import { eq, and, ilike, desc, asc, sql, inArray } from "drizzle-orm";
 import db from "@/db/drizzle";
 
+// Get Top Interacted Tags
 export async function getTopInteractedTags(params: GetTopInteractedTagsParams) {
   try {
-    const { userId, limit = 10 } = params;
+    const { userId, limit = 10 } = params; // Default limit to 10 if not provided
 
-    // Ensure userId is a number
-    const numericUserId = parseInt(userId, 10);
-
-    // Find user interactions
+    // Find interactions by the user
     const userInteractions = await db
-      .select({ interactionTags: interactions.action })
+      .select({
+        interactionId: interactions.id,
+        tagId: interactions.tagId,
+      })
       .from(interactions)
-      .where(eq(interactions.user, numericUserId));
+      .where(eq(interactions.userId, Number(userId)));
 
-    if (!userInteractions.length) {
-      throw new Error("No interactions found for this user");
-    }
+    if (!userInteractions.length) throw new Error("User not found");
 
-    // Aggregate tag counts from interactions
+    // Count interactions for each tag
     const tagCounts: { [tagId: string]: number } = {};
-    userInteractions.forEach(({ interactionTags }) => {
-      JSON.parse(interactionTags).forEach((tagId: number) => {
-        if (tagCounts[tagId]) {
-          tagCounts[tagId]++;
+    userInteractions.forEach((interaction) => {
+      if (interaction.tagId !== null) {
+        if (tagCounts[interaction.tagId]) {
+          tagCounts[interaction.tagId]++;
         } else {
-          tagCounts[tagId] = 1;
+          tagCounts[interaction.tagId] = 1;
         }
-      });
+      }
     });
 
-    // Sort and limit tags by interaction count
-    const sortedTagIds = Object.entries(tagCounts)
-      .sort(([, countA], [, countB]) => countB - countA)
-      .slice(0, limit)
-      .map(([tagId]) => parseInt(tagId));
+    // Sort tags by interaction count
+    const sortedTags = Object.entries(tagCounts)
+      .sort(([, countA], [, countB]) => countB - countA) 
+      .slice(0, limit) 
+      .map(([tagId]) => Number(tagId));
 
-    // Fetch tag details
+    // Get tag details from tags table
     const topTags = await db
-      .select({ id: tags.id, name: tags.name })
-      .from(tags)
-      .where(inArray(tags.id, sortedTagIds));
-
-    return topTags;
-  } catch (error) {
-    console.log(error);
-    throw error;
-  }
-}
-
-export async function getAllTags(params: GetAllTagsParams) {
-  try {
-    const { searchQuery, filter, page = 1, pageSize = 20 } = params;
-    const offset = (page - 1) * pageSize;
-
-    let sortOptions;
-    switch (filter) {
-      case "popular":
-        sortOptions = desc(sql`COUNT(questions.id)`);
-        break;
-      case "recent":
-        sortOptions = desc(tags.createdAt);
-        break;
-      case "name":
-        sortOptions = asc(tags.name);
-        break;
-      case "old":
-        sortOptions = asc(tags.createdAt);
-        break;
-      default:
-        sortOptions = asc(tags.name);
-        break;
-    }
-
-    // Build search query
-    let whereClause;
-    if (searchQuery) {
-      whereClause = ilike(tags.name, `%${searchQuery}%`);
-    }
-
-    // Fetch tags with pagination and sorting
-    const tagsListQuery = db
       .select({
         id: tags.id,
         name: tags.name,
-        description: tags.description,
       })
       .from(tags)
-      .leftJoin(questionTags, eq(tags.id, questionTags.tagId))
-      .groupBy(tags.id)
-      .orderBy(sortOptions)
-      .offset(offset)
-      .limit(pageSize);
+      .where(inArray(tags.id, sortedTags));
 
-    if (whereClause) {
-      tagsListQuery.where(whereClause);
-    }
-
-    const tagsList = await tagsListQuery;
-
-    const totalTagsQuery = db
-      .select({ count: sql<number>`COUNT(*)` })
-      .from(tags);
-
-    if (whereClause) {
-      totalTagsQuery.where(whereClause);
-    }
-
-    const totalTags = await totalTagsQuery;
-
-    const isNext = totalTags[0].count > offset + tagsList.length;
-
-    return { tags: tagsList, isNext };
+    return topTags;
   } catch (error) {
-    console.log(error);
+    console.error(error);
     throw error;
   }
 }
 
+// Get All Tags with filtering, sorting, and pagination
+export async function getAllTags(params: GetAllTagsParams) {
+  try {
+  const { searchQuery, filter, page = 1, pageSize = 20 } = params;
+  const skipCount = (page - 1) * pageSize;
+
+  let sortOptions;
+  switch (filter) {
+    case "popular":
+      sortOptions = desc(tags.questionCount);
+      break;
+    case "recent":
+      sortOptions = desc(tags.createdAt);
+      break;
+    case "name":
+      sortOptions = asc(tags.name);
+      break;
+    case "old":
+      sortOptions = asc(tags.createdAt);
+      break;
+    default:
+      sortOptions = desc(tags.createdAt); // Default to recent if no filter is specified
+      break;
+  }
+
+  const query = searchQuery
+    ? db
+        .select()
+        .from(tags)
+        .where(like(tags.name, `%${searchQuery}%`))
+    : db.select().from(tags);
+
+  const tagsList = await query
+    .orderBy(sortOptions)
+    .offset(skipCount)
+    .limit(pageSize);
+
+  const totalTagsResult = await db.execute<{ count: number }>(sql`SELECT COUNT(*) FROM ${tags}`);
+  const totalTags = (totalTagsResult as unknown as { count: number }[])[0].count;
+  const isNext = totalTags > skipCount + tagsList.length;
+
+  return { tags: tagsList, isNext };
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+}
+
+// Get Questions by Tag ID
 export async function getQuestionByTagId(params: GetQuestionByTagIdParams) {
   try {
     const { tagId, page = 1, pageSize = 10, searchQuery } = params;
-    const offset = (page - 1) * pageSize;
+    const skipCount = (page - 1) * pageSize;
 
-    // Fetch questions related to the tag
-    const tagWithQuestions = await db
+    const query = searchQuery
+      ? db
+        .select()
+        .from(questions)
+        .where(like(questions.title, `%${searchQuery}%`))
+      : db.select().from(questions);
+
+    const tagQuestions = await db
       .select({
         questionId: questions.id,
         title: questions.title,
-        createdAt: questions.createdAt,
-        authorId: users.id,
-        authorName: users.name,
-        authorUsername: users.username,
-        name: tags.name, 
+        authorId: questions.authorId,
       })
-      .from(tags)
-      .where(
-        and(
-          eq(tags.id, parseInt(tagId, 10)),
-          searchQuery ? ilike(questions.title, `%${searchQuery}%`) : undefined
-        )
-      )
-      .leftJoin(questionTags, eq(tags.id, questionTags.tagId))
-      .leftJoin(questions, eq(questionTags.questionId, questions.id))
-      .leftJoin(users, eq(questions.author, users.id))
-      .orderBy(desc(questions.createdAt))
-      .offset(offset)
+      .from(questions)
+      .innerJoin(tags, eq(tags.id, questions.tagId))
+      .where(eq(questions.tagId, Number(tagId)))
+      .offset(skipCount)
       .limit(pageSize + 1);
 
-    const isNext = tagWithQuestions.length > pageSize;
-    const questionsList = tagWithQuestions.slice(0, pageSize);
+    const isNext = tagQuestions.length > pageSize;
+    const questionsList = tagQuestions.slice(0, pageSize);
 
-    return {
-      tagTitle: tagWithQuestions[0]?.name || "",
-      questions: questionsList,
-      isNext,
-    };
+    return { tagTitle: tagId, questions: questionsList, isNext };
   } catch (error) {
-    console.log(error);
+    console.error(error);
     throw error;
   }
 }
 
+// Get Popular Tags
 export async function getPopularTags() {
   try {
-    // Query popular tags based on number of associated questions
     const popularTags = await db
       .select({
         id: tags.id,
         name: tags.name,
-        totalQuestions: sql<number>`COUNT(questions.id)`,
+        totalQuestions: tags.questionCount,
       })
       .from(tags)
-      .leftJoin(questionTags, eq(tags.id, questionTags.tagId))
-      .groupBy(tags.id)
-      .orderBy(desc(sql`COUNT(questions.id)`))
+      .orderBy(desc(tags.questionCount))
       .limit(5);
 
     return popularTags;
   } catch (error) {
-    console.log(error);
+    console.error(error);
     throw error;
   }
 }
