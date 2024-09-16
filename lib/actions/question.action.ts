@@ -336,7 +336,13 @@ export async function getRecommendedQuestions(params: RecommendedParams) {
 
     const userTags = userInteractions.map((interaction) => interaction.tags);
 
-    const distinctUserTagIds = [...new Set(userTags.filter(tag => tag !== null).map((tag) => tag.id))];
+    const distinctUserTagIds = [
+  ...new Set(
+    userTags
+      .filter((tag): tag is NonNullable<typeof tag> => tag !== null)
+      .map((tag) => tag.id)
+  ),
+];
 
     const baseWhereClause = and(
       inArray(questions.tagId, distinctUserTagIds),
