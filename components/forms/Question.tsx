@@ -25,10 +25,10 @@ import { useRouter, usePathname } from 'next/navigation';
 interface QuestionProps {
   type?: string;
   questionDetails?: string;
-  mongoUserId: string;
+  userId: string;
 }
 
-const Question = ({ type, mongoUserId, questionDetails }: QuestionProps) => {
+const Question = ({ type, userId, questionDetails }: QuestionProps) => {
   const editorRef = useRef(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
@@ -72,7 +72,7 @@ const Question = ({ type, mongoUserId, questionDetails }: QuestionProps) => {
           title: values.title,
           content: values.explanation,
           tags: values.tags,
-          author: JSON.parse(mongoUserId),
+          author: JSON.parse(userId),
           path: pathname,
           tagId: values.title, 
         });

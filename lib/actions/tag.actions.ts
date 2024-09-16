@@ -13,7 +13,7 @@ import db from "@/db/drizzle";
 // Get Top Interacted Tags
 export async function getTopInteractedTags(params: GetTopInteractedTagsParams) {
   try {
-    const { userId, limit = 10 } = params; // Default limit to 10 if not provided
+    const { userId, limit = 10 } = params; 
 
     // Find interactions by the user
     const userInteractions = await db
@@ -61,52 +61,58 @@ export async function getTopInteractedTags(params: GetTopInteractedTagsParams) {
 }
 
 // Get All Tags with filtering, sorting, and pagination
+
+
+
 export async function getAllTags(params: GetAllTagsParams) {
   try {
-  const { searchQuery, filter, page = 1, pageSize = 20 } = params;
-  const skipCount = (page - 1) * pageSize;
+    const { searchQuery, filter, page = 1, pageSize = 20 } = params;
+    const skipCount = (page - 1) * pageSize;
 
-  let sortOptions;
-  switch (filter) {
-    case "popular":
-      sortOptions = desc(tags.questionCount);
-      break;
-    case "recent":
-      sortOptions = desc(tags.createdAt);
-      break;
-    case "name":
-      sortOptions = asc(tags.name);
-      break;
-    case "old":
-      sortOptions = asc(tags.createdAt);
-      break;
-    default:
-      sortOptions = desc(tags.createdAt); // Default to recent if no filter is specified
-      break;
-  }
+    let sortOptions;
+    switch (filter) {
+      case 'popular':
+        sortOptions = desc(tags.questionCount);
+        break;
+      case 'recent':
+        sortOptions = desc(tags.createdAt);
+        break;
+      case 'name':
+        sortOptions = asc(tags.name);
+        break;
+      case 'old':
+        sortOptions = asc(tags.createdAt);
+        break;
+      default:
+        sortOptions = desc(tags.createdAt); 
+        break;
+    }
 
-  const query = searchQuery
-    ? db
-        .select()
-        .from(tags)
-        .where(like(tags.name, `%${searchQuery}%`))
-    : db.select().from(tags);
+    const query = searchQuery
+      ? db
+          .select()
+          .from(tags)
+          .where(like(tags.name, `%${searchQuery}%`))
+      : db.select().from(tags);
 
-  const tagsList = await query
-    .orderBy(sortOptions)
-    .offset(skipCount)
-    .limit(pageSize);
+    const tagsList = await query
+      .orderBy(sortOptions)
+      .offset(skipCount)
+      .limit(pageSize)
+      .execute();
 
-  const totalTagsResult = await db.execute<{ count: number }>(sql`SELECT COUNT(*) FROM ${tags}`);
-  const totalTags = (totalTagsResult as unknown as { count: number }[])[0].count;
-  const isNext = totalTags > skipCount + tagsList.length;
+    // Explicitly define the type for totalTagsResult
+    const totalTagsResult = await db.execute<{ count: number }>(sql`SELECT COUNT(*) as count FROM ${tags}`);
+    const totalTags = (totalTagsResult as unknown as { count: number }[])[0]?.count || 0; 
+    const isNext = totalTags > skipCount + tagsList.length;
 
-  return { tags: tagsList, isNext };
+    return { tags: tagsList, isNext };
   } catch (error) {
     console.error(error);
     throw error;
   }
 }
+
 
 // Get Questions by Tag ID
 export async function getQuestionByTagId(params: GetQuestionByTagIdParams) {

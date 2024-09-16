@@ -37,13 +37,27 @@ export async function getUserById(userId: string) {
   }
 }
 
+
+
 export async function createUser(userData: CreateUserParams) {
   try {
-    const newUser = await db.insert(users).values(userData).returning();
+    // Log the incoming user data to ensure it's correct
+    console.log('Creating user with data:', userData);
+    
+    // Insert the user data into the users table
+    const newUser = await db
+      .insert(users)
+      .values(userData)
+      .returning(); // This returns the newly created record
+    
+    // Log the created user
+    console.log('New user created:', newUser);
+
     return newUser;
   } catch (error) {
-    console.error(error);
-    throw error;
+    // Detailed error logging
+    console.error('Error creating user:', error);
+    throw new Error('Failed to create user');
   }
 }
 export async function updateUser(params: UpdateUserParams) {
@@ -162,7 +176,9 @@ export async function getSavedQuestions(params: GetSavedQuestionsParams) {
       where: (users, { eq }) => eq(users.clerkId, clerkId),
     });
 
-    if (!user) throw new Error("User not found");
+    if (!user) {
+      return { question: [] };
+    }
 
     const filters: any = { authorId: user.id };
 

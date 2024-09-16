@@ -75,7 +75,7 @@ export default async function Home({ searchParams }: any) {
       <HomeFilters />
 
       <div className="mt-10 flex w-full flex-col gap-6">
-        {result.question.length > 0 ? (
+        {result.question?.length > 0 ? (
           result.question.map((question: any) => (
             <QuestionCard
               key={question._id}
@@ -87,14 +87,17 @@ export default async function Home({ searchParams }: any) {
               views={question.views}
               answers={question.answers}
               createdAt={question.createdAt}
-              clerkId={userId}
             />
           ))
         ) : (
           <NoResult
-            title="There&apos;s no Question to show"
-            description={`${searchParams.f === 'recommended' ? 'Please interact with others questions to get recommended questions tailored to you 😉' : 'Be the first to break the silence! 🚀 Ask a Question and kickstart the discussion. our query could be the next big thing others learn from. Get involved'}`}
-            hasButton={searchParams.f !== 'recommended'}
+            title="There's no Question to show"
+            description={`${
+              searchParams.f === "recommended"
+                ? "Please interact with others questions to get recommended questions tailored to you 😉"
+                : "Be the first to break the silence! 🚀 Ask a Question and kickstart the discussion. our query could be the next big thing others learn from. Get involved"
+            }`}
+            hasButton={searchParams.f !== "recommended"}
             btnText="Ask a Question"
             btnLink="/ask-question"
           />

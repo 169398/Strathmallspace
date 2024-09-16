@@ -175,21 +175,9 @@ export async function getQuestionById(params: GetQuestionByIdParams) {
       .where(eq(questions.id, Number(questionId)))
       .execute();
 
-    const result = question[0];
-
-    // Check if upvotes or downvotes are null, and handle accordingly
-    const upvoteCount = result.upvotes ? result.upvotes.length : 0;
-    const downvoteCount = result.downvotes ? result.downvotes.length : 0;
-
-    // Return the question with the calculated counts
-    return {
-      ...result,
-      upvoteCount,
-      downvoteCount,
-    };
-
+    return question[0]; 
   } catch (error) {
-    console.error(`getQuestionById: ${error}`);
+    console.error(`getQuestionById : ${error}`);
     throw error;
   }
 }
@@ -348,8 +336,7 @@ export async function getRecommendedQuestions(params: RecommendedParams) {
 
     const userTags = userInteractions.map((interaction) => interaction.tags);
 
-    const distinctUserTagIds = [...new Set(userTags.filter((tag): tag is NonNullable<typeof tag> => tag !== null).map((tag) => tag.id))];
-
+    const distinctUserTagIds = [...new Set(userTags.filter(tag => tag !== null).map((tag) => tag.id))];
 
     const baseWhereClause = and(
       inArray(questions.tagId, distinctUserTagIds),

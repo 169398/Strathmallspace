@@ -5,7 +5,6 @@ import {
   varchar,
   timestamp,
   integer,
- 
 } from "drizzle-orm/pg-core";
 import { relations, type InferSelectModel } from "drizzle-orm";
 
@@ -22,21 +21,17 @@ export const users = pgTable("users", {
   portfolioWebsite: varchar("portfolio_website", { length: 255 }),
   reputation: integer("reputation").default(0),
   joinedAt: timestamp("joined_at").defaultNow(),
-  password: varchar("password", { length: 255 }), 
-
+  password: varchar("password", { length: 255 }),
 });
-
-
 
 // Tags Table
 export const tags = pgTable("tags", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull().unique(),
-
   description: text("description").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
-  questionCount: integer("question_count").default(0), 
-  questions: integer("questions").array().default([]),
+  questionCount: integer("question_count").default(0),
+   questions: integer("questions").array().default([]),
 });
 
 // Questions Table
@@ -48,7 +43,7 @@ export const questions = pgTable("questions", {
   upvotes: integer("upvotes").array().default([]),
   downvotes: integer("downvotes").array().default([]),
   answersCount: integer("answers_count").default(0),
-  tags: integer("tags").array().default([]),
+   tags: integer("tags").array().default([]),
   answers: integer("answers").array().default([]), 
   authorId: integer("author_id")
     .references(() => users.id)
@@ -67,7 +62,9 @@ export const questionTags = pgTable("question_tags", {
   tagId: integer("tag_id")
     .references(() => tags.id)
     .notNull(),
-});
+}, (table) => ({
+  primaryKey: [table.questionId, table.tagId]
+}));
 
 // Answers Table
 export const answers = pgTable("answers", {
@@ -84,8 +81,6 @@ export const answers = pgTable("answers", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-
-
 // Interactions Table
 export const interactions = pgTable("interactions", {
   id: serial("id").primaryKey(),
@@ -94,14 +89,14 @@ export const interactions = pgTable("interactions", {
     .notNull(),
   action: varchar("action", { length: 50 }).notNull(),
   tagId: integer("tag_id").references(() => tags.id),
-
   questionId: integer("question_id").references(() => questions.id),
   answerId: integer("answer_id").references(() => answers.id),
   createdAt: timestamp("created_at").defaultNow(),
-  tags: integer("tags").array().default([]),
+    tags: integer("tags").array().default([]),
+
 });
 
-// Saved Questions Table
+// Saved Questions Table (Many-to-Many between Users and Questions)
 export const savedQuestions = pgTable("saved_questions", {
   userId: integer("user_id")
     .references(() => users.id)
@@ -109,11 +104,9 @@ export const savedQuestions = pgTable("saved_questions", {
   questionId: integer("question_id")
     .references(() => questions.id)
     .notNull(),
-}, (table) => {
-  return {
-    primaryKey: [table.userId, table.questionId]
-  };
-});
+}, (table) => ({
+  primaryKey: [table.userId, table.questionId]
+}));
 
 // Relations
 export const userRelations = relations(users, ({ many }) => ({
@@ -158,6 +151,17 @@ export const interactionRelations = relations(interactions, ({ one }) => ({
   }),
 }));
 
+export const savedQuestionRelations = relations(savedQuestions, ({ one }) => ({
+  user: one(users, {
+    fields: [savedQuestions.userId],
+    references: [users.id],
+  }),
+  question: one(questions, {
+    fields: [savedQuestions.questionId],
+    references: [questions.id],
+  }),
+}));
+
 // Infer types
 export type User = InferSelectModel<typeof users>;
 export type Question = InferSelectModel<typeof questions>;
@@ -165,4 +169,3 @@ export type Answer = InferSelectModel<typeof answers>;
 export type Tag = InferSelectModel<typeof tags>;
 export type Interaction = InferSelectModel<typeof interactions>;
 export type SavedQuestion = InferSelectModel<typeof savedQuestions>;
-
