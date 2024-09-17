@@ -6,6 +6,7 @@ import { createUser, deleteUser, updateUser } from '@/lib/actions/user.action'
 import { NextResponse } from 'next/server'
  
 export async function POST(req: Request) {
+  console.log('Webhook received')
  
   // You can find this in the Clerk Dashboard -> Webhooks -> choose the webhook
   const WEBHOOK_SECRET = process.env.NEXT_CLERK_WEBHOOK_SECRET
@@ -30,6 +31,7 @@ export async function POST(req: Request) {
   // Get the body
   const payload = await req.json()
   const body = JSON.stringify(payload);
+  console.log('Payload:', body)
  
   // Create a new SVIX instance with your secret.
   const wh = new Webhook(WEBHOOK_SECRET);
@@ -68,7 +70,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: 'OK', user: mongoUser})
   }
   
-  if(eventType === 'user.updated') {
+  if (eventType === 'user.updated') {
+    console.log('User updated',evt.data)
     const { id, email_addresses, image_url, username, first_name, last_name } = evt.data;
 
     // Create a new user in your database
@@ -82,7 +85,7 @@ export async function POST(req: Request) {
       },
       path: `/profile/${id}`
     })
-
+console.log('User updated',mongoUser)
     return NextResponse.json({ message: 'OK', user: mongoUser})
   }
 

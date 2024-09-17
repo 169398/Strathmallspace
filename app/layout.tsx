@@ -6,6 +6,7 @@ import React from 'react';
 import { Inter, Space_Grotesk } from 'next/font/google';
 import type { Metadata } from 'next';
 import { ThemeProvider } from '@/context/themeProvider';
+import { constructMetadata } from '@/lib/metadata';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -19,12 +20,7 @@ const spaceGrotesk = Space_Grotesk({
   variable: '--font-space-grotesk',
 });
 
-export const metadata: Metadata = {
-  title: 'StrathSpace',
-  description:
-    'StrathSpace is a community of developers for asking and answering programming questions. We are a community of like-minded people who want to learn, create, and grow together.',
-  icons: [],
-};
+export const metadata: Metadata = constructMetadata();
 
 export default function RootLayout({
   children,

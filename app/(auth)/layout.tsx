@@ -1,18 +1,9 @@
-import React from 'react';
-import type { Metadata } from "next";
-
-
-export const metadata: Metadata = {
-  title: "StrathSpace| Sign up",
-  description: "Sign up to your account",
-};
+import React from 'react'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <div className="flex-center min-h-screen bg-auth-light bg-cover dark:bg-auth-dark">
-      {children}
-    </div>
-  );
-};
+  return <div className="flex-center min-h-screen bg-auth-light bg-cover dark:bg-auth-dark ">{children}</div>
+      
 
-export default Layout;
+}
+
+export default Layout

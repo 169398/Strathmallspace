@@ -19,3 +19,33 @@ export const ProfileSchema = z.object({
     location: z.string().min(5, 'Location must contain at least 5 characters').max(50).optional(),
 });
 
+
+
+// USER
+export const signInFormSchema = z.object({
+  email: z.string().email().min(3, "Email must be at least 3 characters"),
+  password: z.string().min(3, "Password must be at least 3 characters"),
+});
+
+export const signUpFormSchema = z
+  .object({
+    name: z.string().min(3, "Name must be at least 3 characters"),
+    email: z.string().email().min(3, "Email must be at least 3 characters"),
+    password: z.string().min(3, "Password must be at least 3 characters"),
+    confirmPassword: z
+      .string()
+      .min(3, "Confirm password must be at least 3 characters"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
+export const updateProfileSchema = z.object({
+  name: z.string().min(3, "Name must be at least 3 characters"),
+  email: z.string().email().min(3, "Email must be at least 3 characters"),
+});
+
+export const updateUserSchema = updateProfileSchema.extend({
+  id: z.string().min(1, "Id is required"),
+  role: z.string().min(1, "Role is required"),
+});

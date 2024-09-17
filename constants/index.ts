@@ -1,7 +1,26 @@
 import { SidebarLink } from "@/types";
 
+export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "StrathMallSpace";
+export const APP_DESCRIPTION =process.env.NEXT_PUBLIC_APP_DESCRIPTION ||
+  "StrathMall - The marketplace for all university and local sellers";
 
+export const SENDER_EMAIL =process.env.SENDER_EMAIL || "StrathSpace <info@strathmall.com>";
 
+export const USER_ROLES = process.env.USER_ROLES
+  ? process.env.USER_ROLES.split(", ")
+  : ["admin", "user", "seller"];
+
+export const signInDefaultValues = {
+  email: "",
+  password: "",
+};
+
+export const signUpDefaultValues = {
+  name: "",
+  email: "",
+  password: "",
+  confirmPassword: "",
+};
 // we can add more themes here
 export const themes = [
   {
@@ -70,7 +89,6 @@ export const sidebarLinks: SidebarLink[] = [
   },
 ];
 
-
 export const BADGE_CRITERIA = {
   QUESTION_COUNT: {
     BRONZE: 10,
@@ -98,4 +116,3 @@ export const BADGE_CRITERIA = {
     GOLD: 100000,
   },
 };
-

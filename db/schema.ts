@@ -1,22 +1,32 @@
 import {
   pgTable,
-  serial,
   text,
   varchar,
   timestamp,
   integer,
+  uuid,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 import { relations, type InferSelectModel } from "drizzle-orm";
+import { AdapterAccount } from "next-auth/adapters";
 
 // Users Table
 export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  clerkId: varchar("clerkId", { length: 255 }).notNull().unique(),
+  id: uuid("id").defaultRandom().primaryKey().notNull(),
+
   name: varchar("name", { length: 255 }).notNull(),
   username: varchar("username", { length: 255 }).notNull().unique(),
+  emailVerified: timestamp("emailVerified", { mode: "date" }),
+  role: text("role").notNull().default("user"),
+  course: text("course"),
+  resetTokenExpires: timestamp("resetTokenExpires"),
+  resetToken: text("resetToken"),
+  createdAt: timestamp("createdAt").defaultNow(),
+  year: text("year"),
+
   email: varchar("email", { length: 255 }).notNull().unique(),
   bio: text("bio"),
-  picture: varchar("picture", { length: 255 }).notNull(),
+  image: text("image"),
   location: varchar("location", { length: 255 }),
   portfolioWebsite: varchar("portfolio_website", { length: 255 }),
   reputation: integer("reputation").default(0),
@@ -24,55 +34,105 @@ export const users = pgTable("users", {
   password: varchar("password", { length: 255 }),
 });
 
+// ACCOUNTS
+export const accounts = pgTable(
+  "account",
+  {
+    userId: uuid("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: text("type").$type<AdapterAccount>().notNull(),
+    provider: text("provider").notNull(),
+    providerAccountId: text("providerAccountId").notNull(),
+    refresh_token: text("refresh_token"),
+    access_token: text("access_token"),
+    expires_at: integer("expires_at"),
+    token_type: text("token_type"),
+    scope: text("scope"),
+    id_token: text("id_token"),
+    session_state: text("session_state"),
+  },
+  (account) => ({
+    compoundKey: primaryKey({
+      columns: [account.provider, account.providerAccountId],
+    }),
+  })
+);
+
+// SESSIONS
+export const sessions = pgTable("session", {
+  sessionToken: text("sessionToken").primaryKey(),
+  userId: uuid("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  expires: timestamp("expires", { mode: "date" }).notNull(),
+});
+
+// VERIFICATION TOKENS
+export const verificationTokens = pgTable(
+  "verificationToken",
+  {
+    identifier: text("identifier").notNull(),
+    token: text("token").notNull(),
+    expires: timestamp("expires", { mode: "date" }).notNull(),
+  },
+  (vt) => ({
+    compoundKey: primaryKey({ columns: [vt.identifier, vt.token] }),
+  })
+);
 // Tags Table
 export const tags = pgTable("tags", {
-  id: serial("id").primaryKey(),
+  id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 255 }).notNull().unique(),
   description: text("description").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   questionCount: integer("question_count").default(0),
-   questions: integer("questions").array().default([]),
+  questions: integer("questions").array().default([]),
 });
 
 // Questions Table
 export const questions = pgTable("questions", {
-  id: serial("id").primaryKey(),
+  id: uuid("id").primaryKey().defaultRandom(),
   title: text("title").notNull(),
   content: text("content").notNull(),
   views: integer("views").default(0),
   upvotes: integer("upvotes").array().default([]),
   downvotes: integer("downvotes").array().default([]),
   answersCount: integer("answers_count").default(0),
-   tags: integer("tags").array().default([]),
-  answers: integer("answers").array().default([]), 
-  authorId: integer("author_id")
+  tags: integer("tags").array().default([]),
+  answers: integer("answers").array().default([]),
+  authorId: uuid("author_id")
     .references(() => users.id)
     .notNull(),
   createdAt: timestamp("created_at").defaultNow(),
-  tagId: integer("tag_id")
+  tagId: uuid("tag_id")
     .references(() => tags.id)
     .notNull(),
 });
 
 // Question Tags (Many-to-Many relation between Questions and Tags)
-export const questionTags = pgTable("question_tags", {
-  questionId: integer("question_id")
-    .references(() => questions.id)
-    .notNull(),
-  tagId: integer("tag_id")
-    .references(() => tags.id)
-    .notNull(),
-}, (table) => ({
-  primaryKey: [table.questionId, table.tagId]
-}));
+export const questionTags = pgTable(
+  "question_tags",
+  {
+    questionId: uuid("question_id")
+      .references(() => questions.id)
+      .notNull(),
+    tagId: uuid("tag_id")
+      .references(() => tags.id)
+      .notNull(),
+  },
+  (table) => ({
+    primaryKey: [table.questionId, table.tagId],
+  })
+);
 
 // Answers Table
 export const answers = pgTable("answers", {
-  id: serial("id").primaryKey(),
-  authorId: integer("author_id")
+  id: uuid("id").primaryKey().defaultRandom(),
+  authorId: uuid("author_id")
     .references(() => users.id)
     .notNull(),
-  questionId: integer("question_id")
+  questionId: uuid("question_id")
     .references(() => questions.id)
     .notNull(),
   content: text("content").notNull(),
@@ -83,30 +143,34 @@ export const answers = pgTable("answers", {
 
 // Interactions Table
 export const interactions = pgTable("interactions", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id")
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
     .references(() => users.id)
     .notNull(),
   action: varchar("action", { length: 50 }).notNull(),
-  tagId: integer("tag_id").references(() => tags.id),
-  questionId: integer("question_id").references(() => questions.id),
-  answerId: integer("answer_id").references(() => answers.id),
+  tagId: uuid("tag_id").references(() => tags.id),
+  questionId: uuid("question_id").references(() => questions.id),
+  answerId: uuid("answer_id").references(() => answers.id),
   createdAt: timestamp("created_at").defaultNow(),
-    tags: integer("tags").array().default([]),
-
+  tags: uuid("tags").array().default([]),
 });
 
 // Saved Questions Table (Many-to-Many between Users and Questions)
-export const savedQuestions = pgTable("saved_questions", {
-  userId: integer("user_id")
-    .references(() => users.id)
-    .notNull(),
-  questionId: integer("question_id")
-    .references(() => questions.id)
-    .notNull(),
-}, (table) => ({
-  primaryKey: [table.userId, table.questionId]
-}));
+export const savedQuestions = pgTable(
+  "saved_questions",
+  {
+    userId: uuid("user_id")
+      .references(() => users.id)
+      .notNull(),
+    questionId: uuid("question_id")
+      .references(() => questions.id)
+      .notNull(),
+  },
+  (table) => ({
+    primaryKey: [table.userId, table.questionId],
+  })
+);
+
 
 // Relations
 export const userRelations = relations(users, ({ many }) => ({
