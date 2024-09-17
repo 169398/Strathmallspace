@@ -22,7 +22,7 @@ export async function getTopInteractedTags(params: GetTopInteractedTagsParams) {
         tagId: interactions.tagId,
       })
       .from(interactions)
-      .where(eq(interactions.userId, Number(userId)));
+      .where(eq(interactions.userId, userId));
 
     if (!userInteractions.length) throw new Error("User not found");
 
@@ -42,7 +42,7 @@ export async function getTopInteractedTags(params: GetTopInteractedTagsParams) {
     const sortedTags = Object.entries(tagCounts)
       .sort(([, countA], [, countB]) => countB - countA) 
       .slice(0, limit) 
-      .map(([tagId]) => Number(tagId));
+      .map(([tagId]) => tagId);
 
     // Get tag details from tags table
     const topTags = await db
@@ -51,7 +51,7 @@ export async function getTopInteractedTags(params: GetTopInteractedTagsParams) {
         name: tags.name,
       })
       .from(tags)
-      .where(inArray(tags.id, sortedTags));
+      .where(inArray(tags.id, sortedTags as string[]));
 
     return topTags;
   } catch (error) {
@@ -135,7 +135,7 @@ export async function getQuestionByTagId(params: GetQuestionByTagIdParams) {
       })
       .from(questions)
       .innerJoin(tags, eq(tags.id, questions.tagId))
-      .where(eq(questions.tagId, Number(tagId)))
+      .where(eq(questions.tagId, tagId))
       .offset(skipCount)
       .limit(pageSize + 1);
 

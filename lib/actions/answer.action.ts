@@ -3,6 +3,7 @@
 import { answers, questions, interactions, users } from "@/db/schema"; 
 import {
   AnswerVoteParams,
+  CreateAnswerParams,
   DeleteAnswerParams,
   GetAnswersParams,
 } from "./shared.types";
@@ -11,12 +12,7 @@ import { eq, sql} from "drizzle-orm";
 import db from "@/db/drizzle";
 
 
-interface CreateAnswerParams {
-  content: string;
-  author: number; 
-  question: number; 
-  path: string; 
-}
+
 // Create an answer
 export async function createAnswer(params: CreateAnswerParams) {
   try {
@@ -26,10 +22,10 @@ export async function createAnswer(params: CreateAnswerParams) {
     const newAnswer = await db
       .insert(answers)
       .values({
-        content, 
-        authorId: author, 
-        questionId: question, 
-      })
+        content,
+        authorId: author,
+        questionId: question,
+     })
       .returning()
       .execute();
 
@@ -39,7 +35,7 @@ export async function createAnswer(params: CreateAnswerParams) {
       .set({
         answers: sql`array_append(answers, ${newAnswer[0].id})`, 
       })
-      .where(eq(questions.id, Number(question)))
+      .where(eq(questions.id, question.toString()))
       .returning()
       .execute();
 
@@ -51,7 +47,7 @@ export async function createAnswer(params: CreateAnswerParams) {
         action: "answer", 
         questionId: question, 
         answerId: newAnswer[0].id, 
-        tags: questionObject[0].tags, 
+        tags: questionObject[0]?.tags?.map(String) || [],
       })
       .execute();
 
@@ -61,7 +57,7 @@ export async function createAnswer(params: CreateAnswerParams) {
       .set({
         reputation: sql`${users.reputation} + 10`, 
       })
-      .where(eq(users.id, Number(author)))
+      .where(eq(users.id, author.toString()))
       .execute();
 
     // Revalidate the path
@@ -111,13 +107,13 @@ export async function getAnswers(params: GetAnswersParams) {
         upvotes: answers.upvotes,
         downvotes: answers.downvotes,
         author: {
-          clerkId: users.clerkId,
+          userId: users.id,
           name: users.name,
-          picture: users.picture,
+          picture: users.image,
         },
       })
       .from(answers)
-      .where(eq(answers.questionId, Number(questionId)))
+      .where(eq(answers.questionId, questionId))
       .limit(pageSize)
       .offset(skipCount)
       .orderBy(sortColumn, sql`${sortOrder}`)
@@ -128,7 +124,7 @@ export async function getAnswers(params: GetAnswersParams) {
     const totalAnswers = await db
       .select({ count: sql`count(*)` })
       .from(answers)
-      .where(eq(answers.questionId, Number(questionId)))
+      .where(eq(answers.questionId, questionId))
       .execute() as { count: number }[];
 
     const isNextAnswer = totalAnswers[0].count > skipCount + answerList.length;
@@ -150,7 +146,7 @@ export async function upvoteAnswer(params: AnswerVoteParams) {
       await db
         .update(answers)
         .set({ upvotes: sql`array_remove(upvotes, ${userId})` })
-        .where(eq(answers.id, Number( answerId)))
+        .where(eq(answers.id, answerId))
         .execute();
     } else if (hasDownvoted) {
       await db
@@ -159,13 +155,13 @@ export async function upvoteAnswer(params: AnswerVoteParams) {
           downvotes: sql`array_remove(downvotes, ${userId})`,
           upvotes: sql`array_append(upvotes, ${userId})`,
         })
-        .where(eq(answers.id, Number(answerId)))
+        .where(eq(answers.id, answerId))
         .execute();
     } else {
       await db
         .update(answers)
         .set({ upvotes: sql`array_append(upvotes, ${userId})` })
-        .where(eq(answers.id, Number(answerId)))
+        .where(eq(answers.id,answerId))
         .execute();
     }
 
@@ -173,14 +169,14 @@ export async function upvoteAnswer(params: AnswerVoteParams) {
     await db
       .update(users)
       .set({ reputation: sql`${users.reputation} + ${hasUpvoted ? -2 : 2}` })
-      .where(eq(users.id, Number(userId)))
+      .where(eq(users.id, userId))
       .execute();
 
     // Update answer author's reputation
     const answer = await db
       .select()
       .from(answers)
-      .where(eq(answers.id, Number(answerId)))
+      .where(eq(answers.id, answerId))
       .execute();
     await db
       .update(users)
@@ -205,7 +201,7 @@ export async function downvoteAnswer(params: AnswerVoteParams) {
       await db
         .update(answers)
         .set({ downvotes: sql`array_remove(downvotes, ${userId})` })
-        .where(eq(answers.id, Number(answerId)))
+        .where(eq(answers.id, answerId))
         .execute();
     } else if (hasUpvoted) {
       await db
@@ -214,13 +210,13 @@ export async function downvoteAnswer(params: AnswerVoteParams) {
           upvotes: sql`array_remove(upvotes, ${userId})`,
           downvotes: sql`array_append(downvotes, ${userId})`,
         })
-        .where(eq(answers.id, Number(answerId)))
+        .where(eq(answers.id, answerId))
         .execute();
     } else {
       await db
         .update(answers)
         .set({ downvotes: sql`array_append(downvotes, ${userId})` })
-        .where(eq(answers.id, Number(answerId)))
+        .where(eq(answers.id, answerId))
         .execute();
     }
 
@@ -228,14 +224,14 @@ export async function downvoteAnswer(params: AnswerVoteParams) {
     await db
       .update(users)
       .set({ reputation: sql`${users.reputation} + ${hasDownvoted ? -2 : 2}` })
-      .where(eq(users.id, Number(userId)))
+      .where(eq(users.id, userId))
       .execute();
 
     // Update answer author's reputation
     const answer = await db
       .select()
       .from(answers)
-      .where(eq(answers.id, Number(answerId)))
+      .where(eq(answers.id, answerId))
       .execute();
     await db
       .update(users)
@@ -261,13 +257,13 @@ export async function deleteAnswer(params: DeleteAnswerParams) {
     const answer = await db
       .select()
       .from(answers)
-      .where(eq(answers.id, Number(answerId)))
+      .where(eq(answers.id,answerId))
       .execute();
 
     if (!answer.length) throw new Error("Answer not found");
 
     // Delete answer and related data
-    await db.delete(answers).where(eq(answers.id, Number(answerId))).execute();
+    await db.delete(answers).where(eq(answers.id, answerId)).execute();
     await db
       .update(questions)
       .set({ answers: sql`array_remove(answers, ${answerId})` })
@@ -275,7 +271,7 @@ export async function deleteAnswer(params: DeleteAnswerParams) {
       .execute();
     await db
       .delete(interactions)
-      .where(eq(interactions.answerId, Number(answerId)))
+      .where(eq(interactions.answerId, answerId))
       .execute();
 
     revalidatePath(path);

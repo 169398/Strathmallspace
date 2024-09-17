@@ -77,11 +77,11 @@ export async function getQuestions(params: GetQuestionParams) {
 export async function createQuestion(params: CreateQuestionParams) {
   try {
     const { title, content, tags: tagNames, author,tagId, path } = params;
-    const authorId = Number(author);
+    const authorId = author.toString();
 
     const question = await db
       .insert(questions)
-      .values({ title, content, authorId, tagId: Number(tagId) })
+      .values({ title, content, authorId, tagId })
       .returning()
       .execute();
 
@@ -94,7 +94,7 @@ export async function createQuestion(params: CreateQuestionParams) {
           .execute();
 
         if (existingTag.length > 0) {
-          return existingTag[0].id;
+          return Number(existingTag[0].id);
         }
 
         const newTag = await db
@@ -103,7 +103,7 @@ export async function createQuestion(params: CreateQuestionParams) {
           .returning()
           .execute();
 
-        return newTag[0].id;
+        return Number(newTag[0].id);
       })
     );
 
@@ -116,7 +116,7 @@ export async function createQuestion(params: CreateQuestionParams) {
     await db
       .insert(interactions)
       .values({
-        userId: authorId,
+        userId: author.toString(),
         action: "ask_question",
         questionId: question[0].id
       })
@@ -125,7 +125,7 @@ export async function createQuestion(params: CreateQuestionParams) {
     await db
       .update(users)
       .set({ reputation: sql`${users.reputation} + 5` })
-      .where(eq(users.id, Number( author)))
+      .where(eq(users.id, author))
       .execute();
 
     revalidatePath(path);
@@ -152,9 +152,9 @@ export async function getQuestionById(params: GetQuestionByIdParams) {
         downvotes: questions.downvotes, 
         author: {
           id: users.id,
-          clerkId: users.clerkId,
+          userId: users.id,
           name: users.name,
-          picture: users.picture,
+          picture: users.image,
         },
         tags: {
           id: tags.id,
@@ -172,7 +172,7 @@ export async function getQuestionById(params: GetQuestionByIdParams) {
       .leftJoin(tags, eq(tags.id, questions.tagId))
       .leftJoin(users, eq(users.id, questions.authorId))
       .leftJoin(answers, eq(answers.questionId, questions.id))
-      .where(eq(questions.id, Number(questionId)))
+      .where(eq(questions.id, questionId))
       .execute();
 
     return question[0]; 
@@ -192,7 +192,7 @@ export async function upvoteQuestion(params: QuestionVoteParams) {
       await db
         .update(questions)
         .set({ upvotes: sql`${questions.upvotes} - 1` })
-        .where(eq(questions.id, Number(questionId)))
+        .where(eq(questions.id, questionId))
         .execute();
     } else if (hasDownvoted) {
       await db
@@ -201,13 +201,13 @@ export async function upvoteQuestion(params: QuestionVoteParams) {
           downvotes: sql`${questions.downvotes} - 1`,
           upvotes: sql`${questions.upvotes} + 1`,
         })
-        .where(eq(questions.id, Number(questionId)))
+        .where(eq(questions.id, questionId))
         .execute();
     } else {
       await db
         .update(questions)
         .set({ upvotes: sql`${questions.upvotes} + 1` })
-        .where(eq(questions.id, Number(questionId)))
+        .where(eq(questions.id, questionId))
         .execute();
     }
 
@@ -227,7 +227,7 @@ export async function downvoteQuestion(params: QuestionVoteParams) {
       await db
         .update(questions)
         .set({ downvotes: sql`${questions.downvotes} - 1` })
-        .where(eq(questions.id, Number(questionId)))
+        .where(eq(questions.id, questionId))
         .execute();
     } else if (hasUpvoted) {
       await db
@@ -236,13 +236,13 @@ export async function downvoteQuestion(params: QuestionVoteParams) {
           upvotes: sql`${questions.upvotes} - 1`,
           downvotes: sql`${questions.downvotes} + 1`,
         })
-        .where(eq(questions.id, Number(questionId)))
+        .where(eq(questions.id, questionId))
         .execute();
     } else {
       await db
         .update(questions)
         .set({ downvotes: sql`${questions.downvotes} + 1` })
-        .where(eq(questions.id, Number(questionId)))
+        .where(eq(questions.id, questionId))
         .execute();
     }
 
@@ -258,14 +258,14 @@ export async function deleteQuestion(params: DeleteQuestionParams) {
   try {
     const { questionId, path } = params;
 
-    await db.delete(questions).where(eq(questions.id, Number(questionId))).execute();
+    await db.delete(questions).where(eq(questions.id, questionId)).execute();
     await db
       .delete(answers)
-      .where(eq(answers.questionId, Number(questionId)))
+      .where(eq(answers.questionId, questionId))
       .execute();
     await db
       .delete(interactions)
-      .where(eq(interactions.questionId, Number(questionId)))
+      .where(eq(interactions.questionId, questionId))
       .execute();
 
     await db
@@ -288,7 +288,7 @@ export async function updateQuestion(params: UpdateQuestionParams) {
     await db
       .update(questions)
       .set({ title, content })
-      .where(eq(questions.id, Number(questionId)))
+      .where(eq(questions.id, questionId))
       .execute();
 
     revalidatePath(path);
@@ -323,7 +323,7 @@ export async function getRecommendedQuestions(params: RecommendedParams) {
     const user = await db
       .select()
       .from(users)
-      .where(eq(users.clerkId, userId))
+      .where(eq(users.id, userId))
       .execute();
     if (!user.length) throw new Error("User not found");
 

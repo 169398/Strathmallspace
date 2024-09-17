@@ -49,8 +49,8 @@ const Community = async ({ searchParams }: any) => {
               key={user.id}
               user={{
                 _id: user.id.toString(),
-                clerkId: user.clerkId,
-                picture: user.picture,
+                userId: user.id,
+                picture: user.image ?? "",
                 name: user.name,
                 username: user.username,
               }}

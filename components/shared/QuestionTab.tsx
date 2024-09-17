@@ -6,9 +6,9 @@ import Pagination from './Pagination';
 interface Props {
   searchParams: any;
   userId: string;
-  clerkId?: string | null;
+  userSessionId?: string | null;
 }
-const QuestionTab = async ({ searchParams, userId, clerkId }: Props) => {
+const QuestionTab = async ({ searchParams, userId}: Props) => {
   const result = await getUserQuestions({
     userId,
     page: searchParams.page ? +searchParams.page : 1,
@@ -21,20 +21,21 @@ const QuestionTab = async ({ searchParams, userId, clerkId }: Props) => {
           <QuestionCard
             key={question.id}
             id={question.id.toString()}
-            clerkId={clerkId}
             title={question.title}
             tags={question.tags?.map(tag => ({ id: tag.toString(), name: `Tag ${tag}` })) ?? []}
             author={
               question.author
                 ? {
-                    ...question.author,
                     id: question.author.id.toString(),
+                    name: question.author.name,
+                    picture: question.author.image ?? "",
+                    userId: question.author.id ?? "",
                   }
                 : {
                     id: "",
                     name: "Unknown",
-                    picture: "",
-                    clerkId: "",
+                  picture: "",
+                    userId: "",
                   }
             } 
             upvotes={question.upvotes?.map(upvote => ({ id: upvote.toString() })) ?? []}
@@ -45,8 +46,8 @@ const QuestionTab = async ({ searchParams, userId, clerkId }: Props) => {
         ))
       ) : (
         <NoResult
-          title="You didn’t ask any questions yet."
-          description="You haven’t asked any questions yet. Ask a Question and kickstart the discussion. Your query could be the next big thing others learn from. Get involved! 💡"
+          title="You didn&apos;t ask any questions yet."
+          description="You haven&apos;t asked any questions yet. Ask a Question and kickstart the discussion. Your query could be the next big thing others learn from. Get involved! 💡"
           hasButton={true}
           btnText="Ask a Question"
           btnLink="/ask-question"

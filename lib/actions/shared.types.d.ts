@@ -70,7 +70,7 @@ export interface AnswerVoteParams {
 
 // Creating a user
 export interface CreateUserParams {
-  clerkId: string;
+  userId: string;
   name: string;
   username: string;
   email: string;
@@ -79,14 +79,14 @@ export interface CreateUserParams {
 
 // Updating a user
 export interface UpdateUserParams {
-  clerkId: string;
+  userId: string;
   updateData: Partial<IUser>;
   path: string;
 }
 
 // Deleting a user
 export interface DeleteUserParams {
-  clerkId: string;
+  userId: string;
 }
 
 // Getting a question by ID
@@ -120,7 +120,7 @@ export interface ToggleSaveQuestionParams {
 
 // Getting saved questions for a user
 export interface GetSavedQuestionsParams {
-  clerkId: string;
+  userId: string;
   page?: number;
   pageSize?: number;
   filter?: string;

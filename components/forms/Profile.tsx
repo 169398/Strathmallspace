@@ -22,11 +22,11 @@ import { updateUser } from '@/lib/actions/user.action';
 import Loading from '../shared/Loading';
 
 interface Props {
-  clerkId: string;
+  userId: string;
   user: string;
 }
 
-const Profile = ({ clerkId, user }: Props) => {
+const Profile = ({ userId, user }: Props) => {
   const router = useRouter();
   const parsedUser = JSON.parse(user);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,7 +50,7 @@ const Profile = ({ clerkId, user }: Props) => {
 
     try {
       await updateUser({
-        clerkId,
+        userId,
         updateData: {
           name: values.name,
           username: values.username,

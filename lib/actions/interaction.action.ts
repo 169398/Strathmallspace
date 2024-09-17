@@ -1,7 +1,7 @@
 "use server";
 
-import { questions, interactions } from "@/db/schema"; // Import your table schemas
-import { eq, and } from "drizzle-orm"; // Drizzle query helpers
+import { questions, interactions } from "@/db/schema"; 
+import { eq, and } from "drizzle-orm";
 import { ViewQuestionParams } from "./shared.types";
 import db from "@/db/drizzle";
 
@@ -13,7 +13,7 @@ export async function viewQuestion(params: ViewQuestionParams) {
     const question = await db
       .select()
       .from(questions)
-      .where(eq(questions.id, Number(questionId)))
+      .where(eq(questions.id, questionId))
       .limit(1);
 
     if (!question.length) {
@@ -24,7 +24,7 @@ export async function viewQuestion(params: ViewQuestionParams) {
     await db
       .update(questions)
       .set({ views: (question[0]?.views ?? 0) + 1 })
-      .where(eq(questions.id, Number(questionId)));
+      .where(eq(questions.id, questionId));
 
     // 3. If a user is viewing the question, check for an existing interaction
     if (userId) {
@@ -33,9 +33,9 @@ export async function viewQuestion(params: ViewQuestionParams) {
         .from(interactions)
         .where(
           and(
-            eq(interactions.userId, Number(userId)),
+            eq(interactions.userId, userId),
             eq(interactions.action, "view"),
-            eq(interactions.questionId, Number(questionId))
+            eq(interactions.questionId,questionId)
           )
         )
         .limit(1);
@@ -47,10 +47,9 @@ export async function viewQuestion(params: ViewQuestionParams) {
 
       // 5. Create a new interaction record for the view action
       await db.insert(interactions).values({
-        userId: Number(userId),
+        userId,
         action: "view",
-        questionId: Number(questionId),
-        tags: question[0].tags,
+        questionId: questionId.toString(),
         
       });
     }

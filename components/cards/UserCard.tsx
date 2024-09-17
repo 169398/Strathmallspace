@@ -7,7 +7,7 @@ import { Badge } from '../ui/badge';
 interface UserProps {
   user: {
     _id: string;
-    clerkId: string;
+    userId: string;
     picture: string;
     name: string;
     username: string;
@@ -23,7 +23,7 @@ const UserCard = async ({ user }: UserProps) => {
   return (
     <div className="w-full rounded-2xl shadow-md max-xs:min-w-full xs:w-[260px]">
       <div className="card-wrapper flex w-full flex-col items-center justify-center rounded-2xl p-8">
-        <Link href={`/profile/${user.clerkId}`} >
+        <Link href={`/profile/${user.userId}`} >
           <Image
             src={user.picture}
             alt={user.name}
@@ -32,7 +32,7 @@ const UserCard = async ({ user }: UserProps) => {
             className="rounded-full"
           />
         </Link>
-        <Link href={`/profile/${user.clerkId}`}>
+        <Link href={`/profile/${user.userId}`}>
           <div className="mt-4 text-center">
             <h3 className="h3-bold text-invert line-clamp-1">{user.name}</h3>
             <p className=" body-regular text-invert-3 mt-2">@{user.username}</p>
