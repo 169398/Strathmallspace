@@ -23,7 +23,7 @@ export async function globalSearch(params: SearchParams) {
         table: users,
         searchField: users.name,
         type: "user",
-        idField: users.clerkId,
+        idField: users.id,
       },
       {
         table: answers,

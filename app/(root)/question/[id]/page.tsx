@@ -1,16 +1,18 @@
-import Answer from '@/components/forms/Answer';
-import AllAnswers from '@/components/shared/AllAnswers';
-import Metric from '@/components/shared/Metric';
-import ParseHtml from '@/components/shared/ParseHtml';
-import RenderTags from '@/components/shared/RenderTags';
-import Voting from '@/components/shared/Voting';
-import { getQuestionById } from '@/lib/actions/question.action';
-import { getUserById } from '@/lib/actions/user.action';
-import { formatNumber, getTimeStamps } from '@/lib/utils';
-import { auth } from '@clerk/nextjs';
-import Image from 'next/image';
-import Link from 'next/link';
+import Answer from "@/components/forms/Answer";
+import AllAnswers from "@/components/shared/AllAnswers";
+import Metric from "@/components/shared/Metric";
+import ParseHtml from "@/components/shared/ParseHtml";
+import RenderTags from "@/components/shared/RenderTags";
+import Voting from "@/components/shared/Voting";
+import { getQuestionById } from "@/lib/actions/question.action";
+import { getUserById } from "@/lib/actions/user.action";
+import { formatNumber, getTimeStamps } from "@/lib/utils";
+import Image from "next/image";
+import Link from "next/link";
 import type { Metadata } from "next";
+import { auth } from "@/auth";
+
+
 
 
 export const metadata: Metadata = {
@@ -19,11 +21,12 @@ export const metadata: Metadata = {
 };
 
 const Page = async ({ params, searchParams }: any) => {
-  const { userId: clerkId } = auth();
-  let mongoUser;
+  const session = await auth();
+  const userId = session?.user?.id;
 
-  if (clerkId) {
-    mongoUser = await getUserById(clerkId);
+  let user;
+  if (userId) {
+    user = await getUserById(userId);
   }
 
   const result = await getQuestionById({ questionId: params.id });
@@ -34,7 +37,7 @@ const Page = async ({ params, searchParams }: any) => {
         <div className="flex w-full flex-col-reverse justify-between gap-5 sm:flex-row sm:items-center sm:gap-2">
           <Link
             className="flex items-center justify-start gap-1"
-            href={`/profile/${result.author?.clerkId}`}
+            href={`/profile/${result.author?.userId}`} 
           >
             <Image
               className="rounded-full"
@@ -51,20 +54,20 @@ const Page = async ({ params, searchParams }: any) => {
             <Voting
               type="Question"
               itemId={JSON.stringify(result.id)}
-              userId={mongoUser ? JSON.stringify(mongoUser.id) : ""}
+              userId={user ? JSON.stringify(user.id) : ""}
               upvotes={result.upvotes?.length ?? 0}
               hasUpvoted={
-                mongoUser
-                  ? result.upvotes?.includes(mongoUser.id) ?? false
+                user
+                  ? result.upvotes?.includes(Number(user.id)) ?? false
                   : false
               }
               downvotes={result.downvotes?.length ?? 0}
               hasDownvoted={
-                mongoUser
-                  ? result.downvotes?.includes(mongoUser.id) ?? false
+                user
+                  ? result.downvotes?.includes(Number(user.id)) ?? false
                   : false
               }
-              hasSaved={mongoUser?.saved?.includes(result.id) ?? false}
+              hasSaved={user?.saved?.includes(result.id) ?? false}
             />
           </div>
         </div>
@@ -79,7 +82,7 @@ const Page = async ({ params, searchParams }: any) => {
           alt="Clock"
           title=""
           textStyles="small-medium card-text-invert-secondary"
-          value={` Asked ${
+          value={`Asked ${
             result.createdAt ? getTimeStamps(result.createdAt) : "Unknown time"
           }`}
         />
@@ -118,15 +121,15 @@ const Page = async ({ params, searchParams }: any) => {
       <Answer
         question={result.content}
         questionId={JSON.stringify(result.id)}
-        authorId={mongoUser ? JSON.stringify(mongoUser.id) : ""}
+        authorId={user ? JSON.stringify(user.id) : ""}
       />
 
       <AllAnswers
         questionId={result.id.toString()}
-        userId={mongoUser ? mongoUser.id.toString() : ""}
+        userId={user ? user.id.toString() : ""}
         totalAnswers={Array.isArray(result.answers) ? result.answers.length : 0}
-        page={searchParams?.page || 1} 
-        filter={searchParams?.filter || ""} 
+        page={searchParams?.page || 1}
+        filter={searchParams?.filter || ""}
       />
     </>
   );

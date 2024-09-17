@@ -3,7 +3,7 @@ import React from "react";
 import RenderTags from "../shared/RenderTags";
 import Metric from "../shared/Metric";
 import { formatNumber, getTimeStamps } from "@/lib/utils";
-import { SignedIn } from "@clerk/nextjs";
+import { useSession } from "next-auth/react";
 import EditDeleteAction from "../shared/EditDeleteAction";
 
 interface QuestionCardProps {
@@ -14,29 +14,26 @@ interface QuestionCardProps {
     id: string;
     name: string;
     picture: string;
-    clerkId: string;
+    userId: string; 
   };
-  upvotes: { id: string }[]; // Adjusted type to match the expected format
+  upvotes: { id: string }[];
   views: number;
-  answers: { id: string }[]; // Adjusted type to match the expected format
+  answers: { id: string }[];
   createdAt: Date;
-  clerkId?: string | null;
 }
 
-// TODO: add clerkId params to all QuestionCard
-
 const QuestionCard = ({
-  clerkId,
   id,
   title,
   tags = [],
   author,
-  upvotes = [], // Ensure this is an array of objects or numbers
+  upvotes = [],
   views = 0,
-  answers = [], // Ensure this is an array of objects
+  answers = [],
   createdAt,
 }: QuestionCardProps) => {
-  const showActionButton = clerkId && clerkId === author.clerkId;
+  const { data: session } = useSession();
+  const showActionButton = session?.user?.id === author.id; 
 
   return (
     <div className="card-wrapper rounded-[10px] p-9 sm:px-11">
@@ -51,13 +48,11 @@ const QuestionCard = ({
             </h3>
           </Link>
         </div>
-        <SignedIn>
-          {showActionButton && (
-            <div>
-              <EditDeleteAction type="Question" itemId={id} />
-            </div>
-          )}
-        </SignedIn>
+        {showActionButton && (
+          <div>
+            <EditDeleteAction type="Question" itemId={id} />
+          </div>
+        )}
       </div>
 
       <div className="mt-3.5 flex flex-wrap gap-2">
@@ -72,7 +67,7 @@ const QuestionCard = ({
           alt="avatar"
           title={` - asked ${getTimeStamps(createdAt)}`}
           textStyles="body-medium card-text-invert-secondary"
-          href={`/profile/${author.clerkId}`}
+          href={`/profile/${author.id}`}
           isAuthor
           value={author.name}
         />

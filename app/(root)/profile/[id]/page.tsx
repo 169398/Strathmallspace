@@ -1,41 +1,40 @@
-import AnswerTab from '@/components/shared/AnswerTab';
-import ProfileLink from '@/components/shared/ProfileLink';
-import QuestionTab from '@/components/shared/QuestionTab';
-import States from '@/components/shared/States';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getUserInfo } from '@/lib/actions/user.action';
-import { getJoinedMonthYear } from '@/lib/utils';
-import { SignedIn, auth } from '@clerk/nextjs';
-import Image from 'next/image';
-import Link from 'next/link';
-import React from 'react';
+import AnswerTab from "@/components/shared/AnswerTab";
+import ProfileLink from "@/components/shared/ProfileLink";
+import QuestionTab from "@/components/shared/QuestionTab";
+import States from "@/components/shared/States";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getUserInfo } from "@/lib/actions/user.action";
+import { getJoinedMonthYear } from "@/lib/utils";
+import Image from "next/image";
+import Link from "next/link";
+import React from "react";
 import type { Metadata } from "next";
-
+import { auth } from "@/auth";
 
 export const metadata: Metadata = {
-  title: "StrathSpace | profile",
+  title: "StrathSpace | Profile",
   description: "View user profile.",
 };
 
 const Profile = async ({ params, searchParams }: any) => {
   const userInfo = await getUserInfo({ userId: params.id });
 
-  const { userId: clerkId } = auth();
+  // Get session from NextAuth
+  const session = await auth();
+  const userSessionId = session?.user?.id;
 
   return (
     <>
       <div className="flex flex-col-reverse items-start justify-between sm:flex-row">
         <div className="flex flex-col items-start gap-4 lg:flex-row">
           <Image
-            src={userInfo?.user.picture}
+            src={userInfo?.user.image ?? ""}
             alt={userInfo?.user.username}
             width={140}
             height={140}
-            className="primary-gradient rounded-full border-4 border-transparent object-cover 
-            "
+            className="primary-gradient rounded-full border-4 border-transparent object-cover"
           />
-
           <div className="mt-3">
             <h2 className="h2-bold text-invert ">{userInfo.user.name}</h2>
             <p className="paragraph-regular text-invert-3 ">
@@ -55,13 +54,15 @@ const Profile = async ({ params, searchParams }: any) => {
                   title={userInfo.user.location}
                 />
               )}
-
               <ProfileLink
                 imgUrl="/assets/icons/calendar.svg"
-                title={userInfo.user.joinedAt ? getJoinedMonthYear(userInfo.user.joinedAt) : 'Date not available'}
+                title={
+                  userInfo.user.joinedAt
+                    ? getJoinedMonthYear(userInfo.user.joinedAt)
+                    : "Date not available"
+                }
               />
             </div>
-
             {userInfo.user.bio && (
               <p className="paragraph-regular text-invert-secondary mt-8 ">
                 {userInfo.user.bio}
@@ -70,18 +71,13 @@ const Profile = async ({ params, searchParams }: any) => {
           </div>
         </div>
         <div className="flex justify-end max-sm:mb-5 max-sm:w-full sm:mt-3">
-          <SignedIn>
-            {clerkId === userInfo.user.clerkId && (
-              <Link href="/profile/edit">
-                <Button
-                  className="btn paragraph-medium text-invert-secondary min-h-[46px]
-                 min-w-[175px] px-4 py-3"
-                >
-                  Edit Profile
-                </Button>
-              </Link>
-            )}
-          </SignedIn>
+          {userSessionId === userInfo.user.id && (
+            <Link href="/profile/edit">
+              <Button className="btn paragraph-medium text-invert-secondary min-h-[46px] min-w-[175px] px-4 py-3">
+                Edit Profile
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -105,14 +101,14 @@ const Profile = async ({ params, searchParams }: any) => {
             <QuestionTab
               searchParams={searchParams}
               userId={userInfo.user.id.toString()}
-              clerkId={clerkId}
+              userSessionId={userSessionId}
             />
           </TabsContent>
           <TabsContent value="answers">
             <AnswerTab
               searchParams={searchParams}
               userId={userInfo.user.id.toString()}
-              clerkId={clerkId}
+              userSessionId={userSessionId}
             />
           </TabsContent>
         </Tabs>

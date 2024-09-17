@@ -1,12 +1,10 @@
-import Link from 'next/link';
-
-import Metric from '../shared/Metric';
-import { formatNumber, getTimeStamps } from '@/lib/utils';
-import { SignedIn } from '@clerk/nextjs';
-import EditDeleteAction from '../shared/EditDeleteAction';
+import Link from "next/link";
+import Metric from "../shared/Metric";
+import { formatNumber, getTimeStamps } from "@/lib/utils";
+import { useSession } from "next-auth/react";
+import EditDeleteAction from "../shared/EditDeleteAction";
 
 interface Props {
-  clerkId?: string | null;
   id: string;
   question: {
     id: string;
@@ -14,7 +12,6 @@ interface Props {
   };
   author: {
     id: string;
-    clerkId: string;
     name: string;
     picture: string;
   };
@@ -22,16 +19,9 @@ interface Props {
   createdAt: Date;
 }
 
-const AnswerCard = ({
-  clerkId,
-  id,
-  question,
-  author,
-  upvotes,
-  createdAt,
-}: Props) => {
-
-  const showActionButton = clerkId && clerkId === author.clerkId;
+const AnswerCard = ({ id, question, author, upvotes, createdAt }: Props) => {
+  const { data: session } = useSession();
+  const showActionButton = session?.user?.id === author.id;
 
   return (
     <Link
@@ -48,13 +38,11 @@ const AnswerCard = ({
           </h3>
         </div>
 
-        <SignedIn>
-          {showActionButton && (
-            <div>
-              <EditDeleteAction type="Answer" itemId={JSON.stringify(id)} />
-            </div>
-          )}
-        </SignedIn>
+        {showActionButton && (
+          <div>
+            <EditDeleteAction type="Answer" itemId={JSON.stringify(id)} />
+          </div>
+        )}
       </div>
 
       <div className="flex-between mt-6 w-full flex-wrap gap-3">
@@ -63,7 +51,7 @@ const AnswerCard = ({
           alt="user avatar"
           value={author.name}
           title={` - answered ${getTimeStamps(createdAt)}`}
-          href={`/profile/${author.clerkId}`}
+          href={`/profile/${author.id}`}
           textStyles="body-medium text-invert-secondary"
           isAuthor
         />

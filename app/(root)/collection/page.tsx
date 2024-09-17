@@ -1,3 +1,4 @@
+import { auth } from '@/auth';
 import QuestionCard from '@/components/cards/QuestionCard';
 import NoResult from '@/components/shared/NoResult';
 import Pagination from '@/components/shared/Pagination';
@@ -5,7 +6,6 @@ import Filter from '@/components/shared/filter';
 import LocalSearchBar from '@/components/shared/search/LocalSearchBar';
 import { QuestionFilters } from '@/constants/filters';
 import { getSavedQuestions } from '@/lib/actions/user.action';
-import { auth } from '@clerk/nextjs';
 import type { Metadata } from "next";
 
 
@@ -15,12 +15,13 @@ export const metadata: Metadata = {
 };
 
 export default async function Home({ searchParams }: any) {
-  const { userId } = auth();
+  const session = await auth();
+  const  userId = session?.user?.id;
   if (!userId) return null;
 
 
   const result = await getSavedQuestions({
-    clerkId: userId,
+     userId,
     searchQuery: searchParams?.q,
     filter: searchParams?.filter,
     page: searchParams?.page ? +searchParams.page : 1,
@@ -56,7 +57,6 @@ export default async function Home({ searchParams }: any) {
               views={question.views}
               answers={question.answers}
               createdAt={question.createdAt}
-              clerkId={userId}
             />
           ))
         ) : (

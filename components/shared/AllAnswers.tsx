@@ -53,11 +53,11 @@ const AllAnswers = async ({
                 <div className="flex-between mb-10">
                   {answer.author && (
                     <Link
-                      href={`/profile/${answer.author.clerkId}`}
+                      href={`/profile/${answer.author.userId}`}
                       className="flex flex-1 items-start gap-1 sm:items-center"
                     >
                       <Image
-                        src={answer.author.picture}
+                        src={answer.author.picture || "/default-profile.png"}
                         alt="profile"
                         width={18}
                         height={18}

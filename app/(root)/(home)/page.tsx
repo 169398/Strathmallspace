@@ -10,9 +10,9 @@ import {
   getRecommendedQuestions,
 } from '@/lib/actions/question.action';
 import Link from 'next/link';
-import { auth } from '@clerk/nextjs';
 import Pagination from '@/components/shared/Pagination';
 import type { Metadata } from "next";
+import { auth } from '@/auth';
 
 
 export const metadata: Metadata = {
@@ -21,7 +21,10 @@ export const metadata: Metadata = {
 };
 
 export default async function Home({ searchParams }: any) {
-  const { userId } = auth();
+  const session = await auth();
+
+  
+  const userId = session?.user?.id;
 
   let result: any;
 

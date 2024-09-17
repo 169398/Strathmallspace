@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { signUp } from "@/lib/actions/user.actions";
-import { signUpDefaultValues } from "@/lib/constants";
+
 import { useState } from "react";
+import { signUp } from "@/lib/actions/user.action";
+import { signUpDefaultValues } from "@/constants";
 
 export default function SignUpForm() {
   const router = useRouter();
@@ -96,8 +97,8 @@ export default function SignUpForm() {
           />
           <Label htmlFor="terms" className="ml-2">
             I agree to the{" "}
-            <Link href="/terms" target="_blank" className="link text-blue-600">
-              StrathMall terms
+            <Link href="/terms" target="_blank" className="text-blue-600">
+              StrathSpace terms
             </Link>
           </Label>
         </div>
@@ -106,13 +107,13 @@ export default function SignUpForm() {
         </div>
 
         {!data.success && (
-          <div className="text-center text-destructive">{data.message}</div>
+          <div className="text-center text-red-600">{data.message}</div>
         )}
-        <div className="text-sm text-center text-muted-foreground">
+        <div className="text-center text-sm text-gray-500">
           Already have an account?{" "}
           <Link
             target="_self"
-            className="link text-blue-600"
+            className="text-blue-600"
             href={`/sign-in?callbackUrl=${callbackUrl}`}
           >
             Sign In

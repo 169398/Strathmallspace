@@ -14,7 +14,6 @@ import {
 import { revalidatePath } from "next/cache";
 import { eq, or, desc, asc, and, sql } from "drizzle-orm";
 import { assignBadges, formatError } from "../utils";
-import { auth, signIn, signOut } from "@/auth";
 import { hashSync } from "bcrypt-ts-edge";
 import { sendResetPasswordEmail } from "@/app/emailreset-password";
 import { addMinutes } from "date-fns";
@@ -22,13 +21,15 @@ import { z } from "zod";
 import { signInFormSchema, signUpFormSchema } from "../validation";
 import { isRedirectError } from "next/dist/client/components/redirect";
 import { sendVerificationEmail } from "@/app/emailverify";
+import { signIn, signOut } from "next-auth/react";
+import { auth } from "@/auth";
 
 
 export async function getUserById(userId: string) {
   try {
     // Query the user along with their saved questions
     const user = await db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.clerkId, userId),
+      where: (users, { eq }) => eq(users.id, userId),
       with: {
         savedQuestions: true, // Assuming savedQuestions is the table name
       },
@@ -70,10 +71,10 @@ export async function createUser(userData: CreateUserParams) {
   }
 }
 export async function updateUser(params: UpdateUserParams) {
-  const { clerkId, updateData, path } = params;
+  const { userId, updateData, path } = params;
 
   try {
-    await db.update(users).set(updateData).where(eq(users.clerkId, clerkId));
+    await db.update(users).set(updateData).where(eq(users.id, userId));
     revalidatePath(path);
   } catch (error) {
     console.error(error);
@@ -82,18 +83,18 @@ export async function updateUser(params: UpdateUserParams) {
 }
 
 export async function deleteUser(params: DeleteUserParams) {
-  const { clerkId } = params;
+  const { userId } = params;
 
   try {
     // Find the user
     const user = await db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.clerkId, clerkId),
+      where: (users, { eq }) => eq(users.id, userId),
     });
 
     if (!user) throw new Error("User not found");
 
     // Delete the user
-    await db.delete(users).where(eq(users.clerkId, clerkId));
+    await db.delete(users).where(eq(users.id, userId));
 
     // Optionally, delete related questions, answers, etc.
     await db.delete(questions).where(eq(questions.authorId, user.id));
@@ -149,8 +150,8 @@ export async function toggleSaveQuestion(params: ToggleSaveQuestionParams) {
     const existing = await db.query.savedQuestions.findFirst({
       where: (savedQuestions, { eq, and }) =>
         and(
-          eq(savedQuestions.userId, Number(userId)),
-          eq(savedQuestions.questionId, Number(questionId))
+          eq(savedQuestions.userId, userId),
+          eq(savedQuestions.questionId, questionId)
         ),
     });
 
@@ -159,14 +160,14 @@ export async function toggleSaveQuestion(params: ToggleSaveQuestionParams) {
         .delete(savedQuestions)
         .where(
           and(
-            eq(savedQuestions.userId, Number(userId)),
-            eq(savedQuestions.questionId, Number(questionId))
+            eq(savedQuestions.userId, userId),
+            eq(savedQuestions.questionId, questionId)
           )
         );
     } else {
       await db
         .insert(savedQuestions)
-        .values([{ userId: Number(userId), questionId: Number(questionId) }]);
+        .values([{  userId, questionId }]);
     }
 
     revalidatePath(path);
@@ -176,13 +177,12 @@ export async function toggleSaveQuestion(params: ToggleSaveQuestionParams) {
   }
 }
 export async function getSavedQuestions(params: GetSavedQuestionsParams) {
-  const { clerkId, searchQuery, filter, page = 1, pageSize = 15 } = params;
+  const { userId, searchQuery, filter, page = 1, pageSize = 15 } = params;
   const offset = (page - 1) * pageSize;
 
   try {
-    // Fetch the user based on clerkId
     const user = await db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.clerkId, clerkId),
+      where: (users, { eq }) => eq(users.id, userId),
     });
 
     if (!user) {
@@ -231,9 +231,8 @@ export async function getUserInfo(params: GetUserInfoParams) {
   const { userId } = params;
 
   try {
-    // Find the user by clerkId
     const user = await db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.clerkId, userId),
+      where: (users, { eq }) => eq(users.id, userId),
     });
 
     if (!user) throw new Error("User not found");
@@ -323,14 +322,14 @@ export async function getUserQuestions(params: GetUserStatsParams) {
         count: sql<number>`count(${questions.id})`.mapWith(Number),
       })
       .from(questions)
-      .where(eq(questions.authorId, Number(userId)));
+      .where(eq(questions.authorId, userId));
 
     const totalQuestions = totalQuestionsResult[0]?.count ?? 0;
 
     // Fetch questions and join with author data
     const questionsList = await db
       .query.questions.findMany({
-        where: (questions, { eq }) => eq(questions.authorId, Number(userId)),
+        where: (questions, { eq }) => eq(questions.authorId, userId),
         offset,
         limit: pageSize,
         with: { author: true }, 
@@ -358,7 +357,7 @@ export async function getUserAnswers(params: GetUserStatsParams) {
         count: sql<number>`count(${answers.id})`.mapWith(Number),
       })
       .from(answers)
-      .where(eq(answers.authorId, Number(userId)));
+      .where(eq(answers.authorId, userId));
 
     const totalAnswers = totalAnswersResult[0]?.count ?? 0;
 
@@ -377,13 +376,13 @@ export async function getUserAnswers(params: GetUserStatsParams) {
         author: {
           id: users.id,
           name: users.name,
-          picture: users.picture,
+          picture: users.image,
         },
       })
       .from(answers)
       .leftJoin(questions, eq(questions.id, answers.questionId))
       .leftJoin(users, eq(users.id, answers.authorId))
-      .where(eq(answers.authorId, Number(userId)))
+      .where(eq(answers.authorId, userId))
       .offset(offset)
       .limit(pageSize)
       .execute();
@@ -482,7 +481,7 @@ export const SignInWithGoogle = async () => {
   await signIn("google");
 };
 
-export const SignOut = async () => {
+export const SignOut = async (p0: { redirectTo: string; }) => {
   await signOut();
 };
 
@@ -587,7 +586,7 @@ export async function updateProfile(user: { name: string; email: string }) {
   try {
     const session = await auth();
     const currentUser = await db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.id, session?.user.id!),
+      where: (users, { eq }) => eq(users.id, session?.user?.id ?? ""),
     });
     if (!currentUser) throw new Error("User not found");
     await db

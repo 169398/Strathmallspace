@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { SignInWithEmail } from '@/lib/actions/user.actions'
+import { SignInWithEmail } from '@/lib/actions/user.action'
 import { useFormStatus } from 'react-dom'
 
 export default function EmailSigninForm() {

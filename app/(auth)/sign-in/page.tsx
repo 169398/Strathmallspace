@@ -3,19 +3,13 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { APP_NAME } from '@/lib/constants'
+
 
 import CredentialsSignInForm from './credentials-signin-form'
 import { auth } from '@/auth'
 import GoogleSignInForm from './google-signin-form'
-import EmailSigninForm from './email-signin-form'
+import { APP_NAME } from '@/constants'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export const metadata: Metadata = {
   title: `Sign In - ${APP_NAME}`,
@@ -34,7 +28,7 @@ export default async function SignIn({
   }
 
   return (
-    <div className="w-full max-w-md mx-auto">
+    <div className="mx-auto w-full max-w-md">
       <Card>
         <CardHeader className="space-y-4">
           <Link href="/" className="flex-center">
@@ -52,7 +46,7 @@ export default async function SignIn({
         </CardHeader>
         <CardContent className="space-y-4">
            <GoogleSignInForm /> 
-           <EmailSigninForm /> 
+           {/* <EmailSigninForm />  */}
           <CredentialsSignInForm />
         </CardContent>
       </Card>

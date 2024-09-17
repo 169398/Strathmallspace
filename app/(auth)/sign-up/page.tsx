@@ -11,9 +11,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { APP_NAME } from '@/lib/constants'
 
 import SignUpForm from './signup-form'
+import { APP_NAME } from '@/constants'
 
 export const metadata: Metadata = {
   title: `Sign Up - ${APP_NAME}`,
@@ -32,7 +32,7 @@ export default async function SignUp({
   }
 
   return (
-    <div className="w-full max-w-md mx-auto">
+    <div className="mx-auto w-full max-w-md">
       <Card>
         <CardHeader className="space-y-4">
           <Link href="/" className="flex-center">
@@ -43,7 +43,7 @@ export default async function SignUp({
               alt={`${APP_NAME} logo`}
             />
           </Link>
-          <div className="text-xs text-center  text-muted-foreground bg-blue-200 mt-4">
+          <div className="mt-4 bg-blue-200 text-center text-xs text-gray-500">
             🛡️Your information is protected{" "}
           </div>
           <CardTitle className="text-center">Create Account</CardTitle>

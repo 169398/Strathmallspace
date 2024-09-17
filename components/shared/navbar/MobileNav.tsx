@@ -8,10 +8,12 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import NavContent from "./NavContent";
-import { SignedOut } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
+import { auth } from "@/auth";
 
-const MobileNav = () => {
+const MobileNav = async () => {
+  const  session  = await auth();
+
   return (
     <div>
       <Sheet>
@@ -35,7 +37,6 @@ const MobileNav = () => {
               width={23}
               alt="StrathSpace"
             /> */}
-
             <p className="h2-bold text-invert font-spaceGrotesk">
               <span className="primary-text-gradient">StrathSpace</span>
             </p>
@@ -44,7 +45,8 @@ const MobileNav = () => {
             <SheetClose asChild>
               <NavContent />
             </SheetClose>
-            <SignedOut>
+
+            {!session && (
               <div className="flex flex-col gap-3">
                 <SheetClose asChild>
                   <Link href="/sign-in">
@@ -61,7 +63,7 @@ const MobileNav = () => {
                   </Link>
                 </SheetClose>
               </div>
-            </SignedOut>
+            )}
           </div>
         </SheetContent>
       </Sheet>
