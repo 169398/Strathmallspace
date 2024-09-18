@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "email": "cp .env.local ./node_modules/react-email && email dev --dir email --port 3001",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.5.0",
@@ -22,7 +24,7 @@
     "@radix-ui/react-slot": "^1.0.2",
     "@radix-ui/react-tabs": "^1.0.4",
     "@tailwindcss/typography": "^0.5.10",
-    "@tinymce/tinymce-react": "^4.3.2",
+    "@tinymce/tinymce-react": "^5.1.1",
     "@vercel/postgres": "^0.10.0",
     "autoprefixer": "^10.4.20",
     "bcrypt-ts-edge": "^3.0.1",
@@ -39,10 +41,10 @@
     "eslint-plugin-tailwindcss": "^3.13.1",
     "html-react-parser": "^5.1.8",
     "lucide-react": "^0.319.0",
-    "next": "14.0.4",
+    "next": "^14.2.12",
     "next-auth": "^5.0.0-beta.18",
     "nextjs-toploader": "^1.6.6",
-    "pg": "^8.12.0",
+    "pg": "^8.13.0",
     "postcss": "^8.4.47",
     "prismjs": "^1.29.0",
     "query-string": "^9.0.0",
@@ -52,7 +54,7 @@
     "resend": "^4.0.0",
     "tailwind-merge": "^2.2.1",
     "tailwindcss-animate": "^1.0.7",
-    "zod": "^3.22.4"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^20",

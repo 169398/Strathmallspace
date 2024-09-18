@@ -21,7 +21,7 @@ const UserCard = async ({ user }: UserProps) => {
   });
 
   return (
-    <div className="w-full rounded-2xl shadow-md max-xs:min-w-full xs:w-[260px]">
+    <div className="max-xs:min-w-full xs:w-[260px] w-full rounded-2xl shadow-md">
       <div className="card-wrapper flex w-full flex-col items-center justify-center rounded-2xl p-8">
         <Link href={`/profile/${user.userId}`} >
           <Image

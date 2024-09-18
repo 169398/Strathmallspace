@@ -10,5 +10,7 @@ export default defineConfig({
   out: './drizzle',
   dbCredentials: {
     url: process.env.POSTGRES_URL!,
+
   },
+  
 })
