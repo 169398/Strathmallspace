@@ -43,10 +43,10 @@ export async function getQuestions(params: GetQuestionParams) {
 
     switch (filter) {
       case "newest":
-        query.orderBy(sql`createdAt DESC`);
+        query.orderBy(sql`${questions}.created_at DESC`);
         break;
       case "frequent":
-        query.orderBy(sql`views DESC`);
+        query.orderBy(sql`${questions}.views DESC`);
         break;
       case "unanswered":
         query.where(eq(questions.answersCount, 0));
@@ -72,7 +72,6 @@ export async function getQuestions(params: GetQuestionParams) {
     throw error;
   }
 }
-
 // Create a new question
 export async function createQuestion(params: CreateQuestionParams) {
   try {

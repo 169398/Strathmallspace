@@ -135,7 +135,7 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
             render={({ field }) => (
               <FormItem className="flex w-full flex-col ">
                 <FormLabel className="paragraph-semibold text-invert">
-                  Question Title <span className="text-primary-main">*</span>
+                  Question Title <span className="text-primary">*</span>
                 </FormLabel>
                 <FormControl className="mt-3.5">
                   <Input
@@ -235,7 +235,7 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
                           <Badge
                             key={tag}
                             className="subtle-medium question-tag-bg flex cursor-pointer
-                            items-center  justify-center gap-2 rounded-md  px-3 py-2 uppercase duration-300 ease-in-out hover:border-error-500"
+                            items-center  justify-center gap-2 rounded-md  px-3 py-2 uppercase duration-300 ease-in-out hover:border-red-500"
                             onClick={() =>
                               type !== 'Edit'
                                 ? handleTagRemove(tag, field)

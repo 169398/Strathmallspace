@@ -24,6 +24,11 @@ const nextConfig = {
       },
     ],
   },
+  env: {
+    POSTGRES_URL: process.env.POSTGRES_URL, 
+  },
+    reactStrictMode: true,
+
 };
 
 module.exports = nextConfig;

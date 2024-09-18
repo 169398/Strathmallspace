@@ -96,7 +96,7 @@ const Profile = ({ userId, user }: Props) => {
                   {...field}
                 />
               </FormControl>
-              <FormMessage className='text-error-500'/>
+              <FormMessage className='text-red-500'/>
             </FormItem>
           )}
         />
@@ -116,7 +116,7 @@ const Profile = ({ userId, user }: Props) => {
                   {...field}
                 />
               </FormControl>
-              <FormMessage className='text-error-500'/>
+              <FormMessage className='text-red-500'/>
             </FormItem>
           )}
         />
@@ -135,7 +135,7 @@ const Profile = ({ userId, user }: Props) => {
                   {...field}
                 />
               </FormControl>
-              <FormMessage className='text-error-500'/>
+              <FormMessage className='text-red-500'/>
             </FormItem>
           )}
         />
@@ -153,7 +153,7 @@ const Profile = ({ userId, user }: Props) => {
                   {...field}
                 />
               </FormControl>
-              <FormMessage className='text-error-500'/>
+              <FormMessage className='text-red-500'/>
             </FormItem>
           )}
         />
@@ -171,7 +171,7 @@ const Profile = ({ userId, user }: Props) => {
                   {...field}
                 />
               </FormControl>
-              <FormMessage className='text-error-500'/>
+              <FormMessage className='text-red-500'/>
             </FormItem>
           )}
         />

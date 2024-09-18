@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import React from "react";
 import Theme from "./Theme";
@@ -5,7 +6,7 @@ import MobileNav from "./MobileNav";
 import GlobalSearch from "../search/GlobalSearch";
 import Image from "next/image";
 import { auth } from "@/auth";
-import { SignOut } from "@/lib/actions/user.action";
+import { SignOutButton } from "../SignOutButton";
 
 
 
@@ -13,9 +14,9 @@ const Navbar = async () => {
   const   session  = await auth();
 
   return (
-    <nav className="flex-between background-background_paper fixed z-50 w-full gap-5 border-b-2 border-divider p-3 shadow-light-300 backdrop-blur-lg dark:border-none dark:shadow-none sm:px-12">
+    <nav className="flex-between background-background_paper fixed z-50 w-full gap-5 border-b-2 border-gray-300 p-3 shadow-md backdrop-blur-lg sm:px-12 dark:border-none dark:shadow-none">
       <Link href="/" className="flex items-center gap-1">
-        <p className="h2-bold font-spaceGrotesk text-gray-800 dark:text-white max-sm:hidden">
+        <p className="h2-bold font-sans text-gray-800 max-sm:hidden dark:text-white">
           <span className="primary-text-gradient">StrathSpace</span>
         </p>
       </Link>
@@ -32,12 +33,7 @@ const Navbar = async () => {
               height={28}
               className="rounded-full"
             />
-            <button
-              onClick={() => SignOut({ redirectTo: "/" })}
-              className="text-sm text-blue-600 dark:text-blue-400"
-            >
-              Sign out
-            </button>
+            <SignOutButton redirectTo="/" />
           </div>
         ) : (
           <Link href="/sign-in">
