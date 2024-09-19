@@ -336,7 +336,7 @@ export async function getUserQuestions(params: GetUserStatsParams) {
       where: (questions, { eq }) => eq(questions.authorId, userId),
       offset,
       limit: pageSize,
-      with: { author: true },
+      with: { author: true, tags: true ,answers: true},
     });
 
     const isNextQuestions = questionsList.length === pageSize;

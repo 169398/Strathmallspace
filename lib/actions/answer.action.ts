@@ -30,10 +30,10 @@ export async function createAnswer(params: CreateAnswerParams) {
       .execute();
 
     // Update question's answer array
-    const questionObject = await db
+    await db
       .update(questions)
       .set({
-        answers: sql`array_append(answers, ${newAnswer[0].id})`, 
+        answersCount: sql`array_append(answers, ${newAnswer[0].id})`, 
       })
       .where(eq(questions.id, question.toString()))
       .returning()
@@ -47,7 +47,6 @@ export async function createAnswer(params: CreateAnswerParams) {
         action: "answer", 
         questionId: question, 
         answerId: newAnswer[0].id, 
-        tags: questionObject[0]?.tags?.map(String) || [],
       })
       .execute();
 
@@ -266,7 +265,7 @@ export async function deleteAnswer(params: DeleteAnswerParams) {
     await db.delete(answers).where(eq(answers.id, answerId)).execute();
     await db
       .update(questions)
-      .set({ answers: sql`array_remove(answers, ${answerId})` })
+      .set({ answersCount: sql`array_remove(answers, ${answerId})` })
       .where(eq(questions.id, answer[0].questionId))
       .execute();
     await db
