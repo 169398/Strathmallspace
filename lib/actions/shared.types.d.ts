@@ -52,11 +52,9 @@ export interface GetQuestionParams {
 export interface CreateQuestionParams {
   title: string;
   content: string;
-  tags: string[]; // List of tag IDs or names
-  author: string; // Should reference a user ID
+  tags: string[];
+  author: string; 
   path: string;
-  tagId: string;
-  
 }
 
 // Voting on an answer

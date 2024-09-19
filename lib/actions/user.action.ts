@@ -60,13 +60,37 @@ export async function updateUser(params: UpdateUserParams) {
   const { userId, updateData, path } = params;
 
   try {
-    await db.update(user).set(updateData).where(eq(user.id, userId));
-    revalidatePath(path);
+    // Ensure updateData is not empty
+    if (!updateData || Object.keys(updateData).length === 0) {
+      throw new Error("No update data provided.");
+    }
+
+    // Perform the update and check the result
+    const result = await db
+      .update(user)
+      .set(updateData)
+      .where(eq(user.id, userId))
+      .returning(); // Optionally return updated rows
+
+    // Log the result to check if any rows were updated
+    if (result.length === 0) {
+      console.warn(`No user found with ID: ${userId}, or no data was updated.`);
+    } else {
+      console.log(`User with ID: ${userId} successfully updated.`);
+    }
+
+    // Optionally revalidate the path if necessary
+     if (path) {
+       revalidatePath(path);
+    }
+
+    return result; // Return updated user data or affected row info
   } catch (error) {
-    console.error(error);
+    console.error(`Failed to update user with ID: ${userId}:`, error);
     throw error;
   }
 }
+
 
 
 
@@ -230,22 +254,32 @@ export async function getUserInfo(params: GetUserInfoParams) {
     const totalAnswers = totalAnswersResult[0]?.count ?? 0;
 
     // Sum upvotes for questions authored by the user
-    const questionUpvotesResult = await db
-      .select({
-        sum: sql<number>`sum(${questions.upvotes})`.mapWith(Number),
-      })
-      .from(questions)
-      .where(eq(questions.authorId, user.id));
+   const questionUpvotesResult = await db
+     .select({
+       sum: sql<number>`sum(u)`.mapWith(Number),
+     })
+     .from(
+       sql`(
+      SELECT unnest(${questions.upvotes}) AS u
+      FROM ${questions}
+      WHERE ${eq(questions.authorId, user.id)}
+    )`
+     );
 
     const questionUpvotes = questionUpvotesResult[0]?.sum ?? 0;
 
     // Sum upvotes for answers authored by the user
-    const answerUpvotesResult = await db
-      .select({
-        sum: sql<number>`sum(${answers.upvotes})`.mapWith(Number),
-      })
-      .from(answers)
-      .where(eq(answers.authorId, user.id));
+   const answerUpvotesResult = await db
+     .select({
+       sum: sql<number>`sum(u)`.mapWith(Number),
+     })
+     .from(
+       sql`(
+      SELECT unnest(${answers.upvotes}) AS u
+      FROM ${answers}
+      WHERE ${eq(answers.authorId, user.id)}
+    )`
+     );
 
     const answerUpvotes = answerUpvotesResult[0]?.sum ?? 0;
 

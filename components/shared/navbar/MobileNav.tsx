@@ -1,4 +1,3 @@
-"use client";
 
 import React from "react";
 import {
@@ -39,7 +38,7 @@ const MobileNav = async () => {
               width={23}
               alt="StrathSpace"
             /> */}
-            <p className="h2-bold text-invert font-spaceGrotesk">
+            <p className="h2-bold text-invert font-sans">
               <span className="primary-text-gradient">StrathSpace</span>
             </p>
           </Link>

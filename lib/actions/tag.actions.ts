@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 "use server";
 
-import { tags, questions, interactions } from "@/db/schema";
+import { tags, questions, interactions, questionTags } from "@/db/schema";
 import { eq, inArray, like, desc, asc, sql } from "drizzle-orm";
 import {
   GetAllTagsParams,
@@ -13,7 +13,7 @@ import db from "@/db/drizzle";
 // Get Top Interacted Tags
 export async function getTopInteractedTags(params: GetTopInteractedTagsParams) {
   try {
-    const { userId, limit = 10 } = params; 
+    const { userId, limit = 10 } = params;
 
     // Find interactions by the user
     const userInteractions = await db
@@ -24,7 +24,10 @@ export async function getTopInteractedTags(params: GetTopInteractedTagsParams) {
       .from(interactions)
       .where(eq(interactions.userId, userId));
 
-    if (!userInteractions.length) throw new Error("User not found");
+    // If no interactions are found, return an empty array or a default response
+    if (!userInteractions.length) {
+      return []; 
+    }
 
     // Count interactions for each tag
     const tagCounts: { [tagId: string]: number } = {};
@@ -40,8 +43,8 @@ export async function getTopInteractedTags(params: GetTopInteractedTagsParams) {
 
     // Sort tags by interaction count
     const sortedTags = Object.entries(tagCounts)
-      .sort(([, countA], [, countB]) => countB - countA) 
-      .slice(0, limit) 
+      .sort(([, countA], [, countB]) => countB - countA)
+      .slice(0, limit)
       .map(([tagId]) => tagId);
 
     // Get tag details from tags table
@@ -134,8 +137,8 @@ export async function getQuestionByTagId(params: GetQuestionByTagIdParams) {
         authorId: questions.authorId,
       })
       .from(questions)
-      .innerJoin(tags, eq(tags.id, questions.tagId))
-      .where(eq(questions.tagId, tagId))
+      .innerJoin(tags, eq(tags.id, questionTags.tagId))
+      .where(eq(questionTags.tagId, tagId))
       .offset(skipCount)
       .limit(pageSize + 1);
 

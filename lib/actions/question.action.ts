@@ -6,6 +6,7 @@ import {
   user,
   interactions,
   answers,
+  questionTags,
 } from "@/db/schema"; // Your schema
 import {
   CreateQuestionParams,
@@ -29,9 +30,11 @@ export async function getQuestions(params: GetQuestionParams) {
     const query = db
       .select()
       .from(questions)
-      .leftJoin(tags, eq(tags.id, questions.tagId))
+      .leftJoin(questionTags, eq(questionTags.questionId, questions.id)) // Make sure to join the questionTags table
+      .leftJoin(tags, eq(tags.id, questionTags.tagId)) // Reference questionTags in this join
       .leftJoin(user, eq(user.id, questions.authorId));
 
+    // If there's a search query, filter by question title or content
     if (searchQuery) {
       query.where(
         or(
@@ -41,6 +44,7 @@ export async function getQuestions(params: GetQuestionParams) {
       );
     }
 
+    // Apply the filter conditions
     switch (filter) {
       case "newest":
         query.orderBy(sql`${questions}.created_at DESC`);
@@ -53,83 +57,118 @@ export async function getQuestions(params: GetQuestionParams) {
         break;
     }
 
+    // Execute the query to get the paginated question list
     const questionList = await query
       .limit(pageSize)
       .offset(skipCount)
       .execute();
-    
-    const whereClause = searchQuery ? or( like(questions.title, `%${searchQuery}%`), like(questions.content, `%${searchQuery}%`)) : sql`true`;
-    const totalQuestions = await db
+
+    // Count total number of questions that match the search query
+    const whereClause = searchQuery
+      ? or(
+          like(questions.title, `%${searchQuery}%`),
+          like(questions.content, `%${searchQuery}%`)
+        )
+      : sql`true`;
+
+    const totalQuestions = (await db
       .select({ count: sql`count(*)` })
       .from(questions)
       .where(whereClause)
-      .execute() as { count: number }[];
+      .execute()) as { count: number }[];
 
+    // Check if there's a next page
     const isNext = totalQuestions[0].count > skipCount + questionList.length;
+
     return { question: questionList, isNext };
   } catch (error) {
     console.error(`getQuestions : ${error}`);
     throw error;
   }
 }
-// Create a new question
+
 export async function createQuestion(params: CreateQuestionParams) {
   try {
-    const { title, content, tags: tagNames, author,tagId, path } = params;
-    const authorId = author.toString();
+    const { title, content, tags: tagNames, author, path } = params;
+        console.log("Creating question with params:", params);
 
-    const question = await db
-      .insert(questions)
-      .values({ title, content, authorId, tagId })
-      .returning()
-      .execute();
+// Insert the question into the "questions" table
+const [question] = await db
+  .insert(questions)
+  .values({
+    title,
+    content,
+    authorId: author, 
+  })
+      .returning(); // Return the inserted question
+        console.log("Question inserted:", question);
 
+
+    // Handle tags by inserting into the questionTags join table
     const tagIds = await Promise.all(
       tagNames.map(async (tagName) => {
-        const existingTag = await db
+        console.log(`Checking if tag exists: ${tagName}`);
+
+        const [existingTag] = await db
           .select()
           .from(tags)
           .where(like(tags.name, `%${tagName}%`))
+          .limit(1) // Retrieve the first matching tag
           .execute();
 
-        if (existingTag.length > 0) {
-          return Number(existingTag[0].id);
+        if (existingTag) {
+                    console.log(`Existing tag found: ${existingTag.id}`);
+
+          return existingTag.id; // Return existing tag's ID
         }
+        console.log(`Tag not found, creating new tag: ${tagName}`);
 
-        const newTag = await db
+        // Insert new tag if it doesn't exist
+        const [newTag] = await db
           .insert(tags)
-          .values({ name: tagName,description: "Tag Description" })
-          .returning()
-          .execute();
+          .values({ name: tagName, description: "Tag Description" })
+          .returning();
 
-        return Number(newTag[0].id);
+        return newTag.id; // Return the new tag ID
+      })
+    );
+    console.log("Tag IDs associated with the question:", tagIds);
+
+    // Insert into the questionTags table to associate the question with tags
+    await Promise.all(
+      tagIds.map(async (tagId) => {
+        await db
+          .insert(questionTags)
+          .values({
+            questionId: question.id, // Reference to the question
+            tagId, // Reference to the tag
+          })
+          .execute();
       })
     );
 
-    await db
-      .update(questions)
-      .set({ tags: tagIds })
-      .where(eq(questions.id, question[0].id))
-      .execute();
-
+    // Record the action in the interactions table (optional)
     await db
       .insert(interactions)
       .values({
-        userId: author.toString(),
+        userId: author,
         action: "ask_question",
-        questionId: question[0].id
+        questionId: question.id,
       })
       .execute();
 
+    // Optionally, update the user's reputation
     await db
       .update(user)
-      .set({ reputation: sql`${user.reputation} + 5` })
+      .set({ reputation: sql`${user.reputation} + 5` }) // Increment reputation by 5
       .where(eq(user.id, author))
       .execute();
+    console.log(`User ${author}'s reputation updated.`);
 
+    // Revalidate the path to ensure fresh data (optional)
     revalidatePath(path);
   } catch (error) {
-    console.error(`createQuestion : ${error}`);
+    console.error(`createQuestion: ${error}`);
     throw error;
   }
 }
@@ -168,7 +207,7 @@ export async function getQuestionById(params: GetQuestionByIdParams) {
         },
       })
       .from(questions)
-      .leftJoin(tags, eq(tags.id, questions.tagId))
+      .leftJoin(tags, eq(tags.id, questionTags.tagId))
       .leftJoin(user, eq(user.id, questions.authorId))
       .leftJoin(answers, eq(answers.questionId, questions.id))
       .where(eq(questions.id, questionId))
@@ -344,7 +383,7 @@ export async function getRecommendedQuestions(params: RecommendedParams) {
 ];
 
     const baseWhereClause = and(
-      inArray(questions.tagId, distinctUserTagIds),
+      inArray(questionTags.tagId, distinctUserTagIds),
       not(eq(questions.authorId, users[0].id))
     );
 

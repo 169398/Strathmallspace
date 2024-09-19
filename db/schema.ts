@@ -91,42 +91,31 @@ export const tags = pgTable("tags", {
   questions: integer("questions").array().default([]),
 });
 
-// Questions Table
+// Simplified Questions Table
 export const questions = pgTable("questions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  title: text("title").notNull(),
-  content: text("content").notNull(),
-  views: integer("views").default(0),
-  upvotes: integer("upvotes").array().default([]),
-  downvotes: integer("downvotes").array().default([]),
-  answersCount: integer("answers_count").default(0),
-  tags: integer("tags").array().default([]),
-  answers: integer("answers").array().default([]),
-  authorId: uuid("author_id")
+  id: uuid("id").primaryKey().defaultRandom(), // Unique identifier
+  title: text("title").notNull(), // Question title
+  content: text("content").notNull(), // Question content
+  views: integer("views").default(0), // View count
+  upvotes: integer("upvotes").default(0), // Simplified upvotes count
+  downvotes: integer("downvotes").default(0), // Simplified downvotes count
+  answersCount: integer("answers_count").default(0), // Simplified answers count
+  authorId: uuid("author_id") // Author reference
     .references(() => user.id)
     .notNull(),
   createdAt: timestamp("created_at").defaultNow(),
+ 
+});
+
+// Associative table for tags to enable many-to-many relationship
+export const questionTags = pgTable("question_tags", {
+  questionId: uuid("question_id")
+    .references(() => questions.id)
+    .notNull(),
   tagId: uuid("tag_id")
     .references(() => tags.id)
     .notNull(),
 });
-
-// Question Tags (Many-to-Many relation between Questions and Tags)
-export const questionTags = pgTable(
-  "question_tags",
-  {
-    questionId: uuid("question_id")
-      .references(() => questions.id)
-      .notNull(),
-    tagId: uuid("tag_id")
-      .references(() => tags.id)
-      .notNull(),
-  },
-  (table) => ({
-    primaryKey: [table.questionId, table.tagId],
-  })
-);
-
 // Answers Table
 export const answers = pgTable("answers", {
   id: uuid("id").primaryKey().defaultRandom(),

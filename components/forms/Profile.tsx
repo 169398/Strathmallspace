@@ -45,28 +45,30 @@ const Profile = ({ userId, user }: Props) => {
   });
 
   // 2. Define a submit handler.
-  async function onSubmit(values: z.infer<typeof ProfileSchema>) {
-    setIsSubmitting(true);
+ async function onSubmit(values: z.infer<typeof ProfileSchema>) {
+   setIsSubmitting(true);
+   console.log("Form submitted with values:", values); // Check if form is submitted
 
-    try {
-      await updateUser({
-        userId,
-        updateData: {
-          name: values.name,
-          username: values.username,
-          portfolioWebsite: values.portfolioWebsite,
-          location: values.location,
-          bio: values.bio,
-        },
+   try {
+     await updateUser({
+       userId,
+       updateData: {
+         name: values.name,
+         username: values.username,
+         portfolioWebsite: values.portfolioWebsite,
+         location: values.location,
+         bio: values.bio,
+       },
         path: pathname,
-      });
-      router.back();
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
+     });
+     console.log("User update request sent"); // Check if updateUser is called
+     router.back();
+   } catch (error) {
+     console.error("Error updating user:", error);
+   } finally {
+     setIsSubmitting(false);
+   }
+ }
 
   return (
     <Form {...form}>
@@ -90,7 +92,6 @@ const Profile = ({ userId, user }: Props) => {
               </FormLabel>
               <FormControl>
                 <Input
-                  disabled={true}
                   className="no-focus paragraph-regular input_background text-invert-secondary min-h-[56px]"
                   placeholder="Your username"
                   {...field}
