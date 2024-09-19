@@ -31,19 +31,20 @@ const UserAuthForm: FC<UserAuthFormProps> = ({ className, ...props }) => {
   }
 
   return (
-    <div className={cn('flex justify-center', className)} {...props}>
+    <div className={cn("flex justify-center", className)} {...props}>
       <Button
         isLoading={isLoading}
-        type='button'
-        size='sm'
-        className='w-full'
+        type="button"
+        size="sm"
+        className="w-full"
         onClick={loginWithGoogle}
-        disabled={isLoading}>
-        {isLoading ? null : <Icons.google className='mr-2 size-4' />}
-        Google
+        disabled={isLoading}
+      >
+        {isLoading ? null : <Icons.google className="mr-2 size-4" />}
+        <span className='text-gray-950'>Google</span>
       </Button>
     </div>
-  )
+  );
 }
 
 export default UserAuthForm

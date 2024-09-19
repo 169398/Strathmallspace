@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1726704952707,
-      "tag": "0000_smart_king_cobra",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1726737583581,
-      "tag": "0001_polite_tattoo",
+      "when": 1726741624664,
+      "tag": "0000_strange_invaders",
       "breakpoints": true
     }
   ]

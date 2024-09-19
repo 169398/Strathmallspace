@@ -1,5 +1,5 @@
 {
-  "id": "70c1d471-4fe7-49ab-a7b9-caa1631788d3",
+  "id": "8bd0d5f5-eb17-4410-b0db-e019934688a0",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -380,17 +380,17 @@
         },
         "upvotes": {
           "name": "upvotes",
-          "type": "integer[]",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
-          "default": "'{}'"
+          "default": 0
         },
         "downvotes": {
           "name": "downvotes",
-          "type": "integer[]",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
-          "default": "'{}'"
+          "default": 0
         },
         "answers_count": {
           "name": "answers_count",
@@ -398,20 +398,6 @@
           "primaryKey": false,
           "notNull": false,
           "default": 0
-        },
-        "tags": {
-          "name": "tags",
-          "type": "integer[]",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'{}'"
-        },
-        "answers": {
-          "name": "answers",
-          "type": "integer[]",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'{}'"
         },
         "author_id": {
           "name": "author_id",
@@ -425,12 +411,6 @@
           "primaryKey": false,
           "notNull": false,
           "default": "now()"
-        },
-        "tag_id": {
-          "name": "tag_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
         }
       },
       "indexes": {},
@@ -441,19 +421,6 @@
           "tableTo": "user",
           "columnsFrom": [
             "author_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "questions_tag_id_tags_id_fk": {
-          "name": "questions_tag_id_tags_id_fk",
-          "tableFrom": "questions",
-          "tableTo": "tags",
-          "columnsFrom": [
-            "tag_id"
           ],
           "columnsTo": [
             "id"

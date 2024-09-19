@@ -44,14 +44,11 @@ CREATE TABLE IF NOT EXISTS "questions" (
 	"title" text NOT NULL,
 	"content" text NOT NULL,
 	"views" integer DEFAULT 0,
-	"upvotes" integer[] DEFAULT '{}',
-	"downvotes" integer[] DEFAULT '{}',
+	"upvotes" integer DEFAULT 0,
+	"downvotes" integer DEFAULT 0,
 	"answers_count" integer DEFAULT 0,
-	"tags" integer[] DEFAULT '{}',
-	"answers" integer[] DEFAULT '{}',
 	"author_id" uuid NOT NULL,
-	"created_at" timestamp DEFAULT now(),
-	"tag_id" uuid NOT NULL
+	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "saved_questions" (
@@ -161,12 +158,6 @@ END $$;
 --> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "questions" ADD CONSTRAINT "questions_author_id_user_id_fk" FOREIGN KEY ("author_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
---> statement-breakpoint
-DO $$ BEGIN
- ALTER TABLE "questions" ADD CONSTRAINT "questions_tag_id_tags_id_fk" FOREIGN KEY ("tag_id") REFERENCES "public"."tags"("id") ON DELETE no action ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
