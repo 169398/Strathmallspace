@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 "use server";
 
-import { tags, questions, users, interactions } from "@/db/schema";
+import { tags, questions, interactions } from "@/db/schema";
 import { eq, inArray, like, desc, asc, sql } from "drizzle-orm";
 import {
   GetAllTagsParams,

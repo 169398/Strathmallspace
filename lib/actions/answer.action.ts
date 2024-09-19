@@ -1,6 +1,6 @@
 "use server";
 
-import { answers, questions, interactions, users } from "@/db/schema"; 
+import { answers, questions, interactions, user } from "@/db/schema"; 
 import {
   AnswerVoteParams,
   CreateAnswerParams,
@@ -53,11 +53,11 @@ export async function createAnswer(params: CreateAnswerParams) {
 
     // Update user's reputation
     await db
-      .update(users)
+      .update(user)
       .set({
-        reputation: sql`${users.reputation} + 10`, 
+        reputation: sql`${user.reputation} + 10`, 
       })
-      .where(eq(users.id, author.toString()))
+      .where(eq(user.id, author.toString()))
       .execute();
 
     // Revalidate the path
@@ -98,7 +98,7 @@ export async function getAnswers(params: GetAnswersParams) {
         break;
     }
 
-    // Fetch answers with pagination and author details (join with users)
+    // Fetch answers with pagination and author details (join with user)
     const answerList = await db
       .select({
         id: answers.id,
@@ -107,9 +107,9 @@ export async function getAnswers(params: GetAnswersParams) {
         upvotes: answers.upvotes,
         downvotes: answers.downvotes,
         author: {
-          userId: users.id,
-          name: users.name,
-          picture: users.image,
+          userId: user.id,
+          name: user.name,
+          picture: user.image,
         },
       })
       .from(answers)
@@ -117,7 +117,7 @@ export async function getAnswers(params: GetAnswersParams) {
       .limit(pageSize)
       .offset(skipCount)
       .orderBy(sortColumn, sql`${sortOrder}`)
-      .leftJoin(users, eq(answers.authorId, users.id))
+      .leftJoin(user, eq(answers.authorId, user.id))
       .execute();
 
     // Fetch the total count of answers
@@ -167,9 +167,9 @@ export async function upvoteAnswer(params: AnswerVoteParams) {
 
     // Update user's reputation
     await db
-      .update(users)
-      .set({ reputation: sql`${users.reputation} + ${hasUpvoted ? -2 : 2}` })
-      .where(eq(users.id, userId))
+      .update(user)
+      .set({ reputation: sql`${user.reputation} + ${hasUpvoted ? -2 : 2}` })
+      .where(eq(user.id, userId))
       .execute();
 
     // Update answer author's reputation
@@ -179,9 +179,9 @@ export async function upvoteAnswer(params: AnswerVoteParams) {
       .where(eq(answers.id, answerId))
       .execute();
     await db
-      .update(users)
-      .set({ reputation: sql`${users.reputation} + ${hasUpvoted ? -10 : 10}` })
-      .where(eq(users.id, answer[0].authorId))
+      .update(user)
+      .set({ reputation: sql`${user.reputation} + ${hasUpvoted ? -10 : 10}` })
+      .where(eq(user.id, answer[0].authorId))
       .execute();
 
     revalidatePath(path);
@@ -222,9 +222,9 @@ export async function downvoteAnswer(params: AnswerVoteParams) {
 
     // Update user's reputation
     await db
-      .update(users)
-      .set({ reputation: sql`${users.reputation} + ${hasDownvoted ? -2 : 2}` })
-      .where(eq(users.id, userId))
+      .update(user)
+      .set({ reputation: sql`${user.reputation} + ${hasDownvoted ? -2 : 2}` })
+      .where(eq(user.id, userId))
       .execute();
 
     // Update answer author's reputation
@@ -234,11 +234,11 @@ export async function downvoteAnswer(params: AnswerVoteParams) {
       .where(eq(answers.id, answerId))
       .execute();
     await db
-      .update(users)
+      .update(user)
       .set({
-        reputation: sql`${users.reputation} + ${hasDownvoted ? -10 : 10}`,
+        reputation: sql`${user.reputation} + ${hasDownvoted ? -10 : 10}`,
       })
-      .where(eq(users.id, answer[0].authorId))
+      .where(eq(user.id, answer[0].authorId))
       .execute();
 
     revalidatePath(path);

@@ -10,10 +10,7 @@ import { formatNumber, getTimeStamps } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { auth } from "@/auth";
-
-
-
+import { auth } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "StrathSpace | Question",
@@ -37,7 +34,7 @@ const Page = async ({ params, searchParams }: any) => {
         <div className="flex w-full flex-col-reverse justify-between gap-5 sm:flex-row sm:items-center sm:gap-2">
           <Link
             className="flex items-center justify-start gap-1"
-            href={`/profile/${result.author?.userId}`} 
+            href={`/profile/${result.author?.userId}`}
           >
             <Image
               className="rounded-full"

@@ -1,8 +1,7 @@
-import { auth } from '@/auth';
-import Profile from '@/components/forms/Profile';
-import { getUserById } from '@/lib/actions/user.action';
+import { auth } from "@/lib/auth";
+import Profile from "@/components/forms/Profile";
+import { getUserById } from "@/lib/actions/user.action";
 import type { Metadata } from "next";
-
 
 export const metadata: Metadata = {
   title: "StrathSpace | Edit Profile",
@@ -10,9 +9,8 @@ export const metadata: Metadata = {
 };
 
 const Page = async ({ params }: any) => {
-
   const session = await auth();
-  const  userId  = session?.user?.id;
+  const userId = session?.user?.id;
   if (!userId) return null;
 
   const mongoUser = await getUserById(userId);

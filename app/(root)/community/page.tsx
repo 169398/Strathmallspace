@@ -24,7 +24,7 @@ const Community = async ({ searchParams }: any) => {
 
   return (
     <>
-      <h1 className="sm:h1-bold h2-bold text-invert w-full font-inter">
+      <h1 className="sm:h1-bold h2-bold text-invert w-full">
         All Users
       </h1>
 

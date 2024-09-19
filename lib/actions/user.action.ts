@@ -1,9 +1,8 @@
 /* eslint-disable no-unused-vars */
 import db from "@/db/drizzle";
-import { questions, savedQuestions, users, answers } from "@/db/schema";
+import { questions, savedQuestions, user, answers } from "@/db/schema";
 import {
   CreateUserParams,
-  DeleteUserParams,
   GetAllUsersParams,
   UpdateUserParams,
   ToggleSaveQuestionParams,
@@ -13,23 +12,15 @@ import {
 } from "./shared.types";
 import { revalidatePath } from "next/cache";
 import { eq, or, desc, asc, and, sql } from "drizzle-orm";
-import { assignBadges, formatError } from "../utils";
-import { hashSync } from "bcrypt-ts-edge";
-import { sendResetPasswordEmail } from "@/app/emailreset-password";
-import { addMinutes } from "date-fns";
-import { z } from "zod";
-import { signInFormSchema, signUpFormSchema } from "../validation";
-import { isRedirectError } from "next/dist/client/components/redirect";
-import { sendVerificationEmail } from "@/app/emailverify";
-import { signIn, signOut } from "next-auth/react";
-import { auth } from "@/auth";
+import { assignBadges } from "../utils";
+import { signIn, signOut } from "../auth";
 
 
 export async function getUserById(userId: string) {
   try {
     // Query the user along with their saved questions
-    const user = await db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.id, userId),
+    const user = await db.query.user.findFirst({
+      where: (user, { eq }) => eq(user.id, userId),
       with: {
         savedQuestions: true, // Assuming savedQuestions is the table name
       },
@@ -39,7 +30,7 @@ export async function getUserById(userId: string) {
 
     return {
       ...user,
-      saved: user.savedQuestions.map((sq) => sq.questionId), 
+      saved: user.savedQuestions.map((sq) => sq.questionId),
     };
   } catch (error) {
     console.error(error);
@@ -47,34 +38,29 @@ export async function getUserById(userId: string) {
   }
 }
 
-
-
 export async function createUser(userData: CreateUserParams) {
   try {
     // Log the incoming user data to ensure it's correct
-    console.log('Creating user with data:', userData);
-    
+    console.log("Creating user with data:", userData);
+
     // Insert the user data into the users table
-    const newUser = await db
-      .insert(users)
-      .values(userData)
-      .returning(); // This returns the newly created record
-    
+    const newUser = await db.insert(user).values(userData).returning(); // This returns the newly created record
+
     // Log the created user
-    console.log('New user created:', newUser);
+    console.log("New user created:", newUser);
 
     return newUser;
   } catch (error) {
     // Detailed error logging
-    console.error('Error creating user:', error);
-    throw new Error('Failed to create user');
+    console.error("Error creating user:", error);
+    throw new Error("Failed to create user");
   }
 }
 export async function updateUser(params: UpdateUserParams) {
   const { userId, updateData, path } = params;
 
   try {
-    await db.update(users).set(updateData).where(eq(users.id, userId));
+    await db.update(user).set(updateData).where(eq(user.id, userId));
     revalidatePath(path);
   } catch (error) {
     console.error(error);
@@ -82,42 +68,20 @@ export async function updateUser(params: UpdateUserParams) {
   }
 }
 
-export async function deleteUser(params: DeleteUserParams) {
-  const { userId } = params;
 
-  try {
-    // Find the user
-    const user = await db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.id, userId),
-    });
-
-    if (!user) throw new Error("User not found");
-
-    // Delete the user
-    await db.delete(users).where(eq(users.id, userId));
-
-    // Optionally, delete related questions, answers, etc.
-    await db.delete(questions).where(eq(questions.authorId, user.id));
-
-    return user;
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
-}
 
 export async function getAllUsers(params: GetAllUsersParams) {
   const { searchQuery, filter, page = 1, pageSize = 100 } = params;
   const offset = (page - 1) * pageSize;
 
   try {
-    const query = db.select().from(users);
+    const query = db.select().from(user);
 
     if (searchQuery) {
       query.where(
         or(
-          eq(users.name, `%${searchQuery}%`),
-          eq(users.username, `%${searchQuery}%`)
+          eq(user.name, `%${searchQuery}%`),
+          eq(user.username, `%${searchQuery}%`)
         )
       );
     }
@@ -125,13 +89,13 @@ export async function getAllUsers(params: GetAllUsersParams) {
     const sortOptions = {};
     switch (filter) {
       case "new_users":
-        query.orderBy(desc(users.joinedAt));
+        query.orderBy(desc(user.joinedAt));
         break;
       case "old_users":
-        query.orderBy(asc(users.joinedAt));
+        query.orderBy(asc(user.joinedAt));
         break;
       case "top_contributors":
-        query.orderBy(desc(users.reputation));
+        query.orderBy(desc(user.reputation));
         break;
     }
 
@@ -165,9 +129,7 @@ export async function toggleSaveQuestion(params: ToggleSaveQuestionParams) {
           )
         );
     } else {
-      await db
-        .insert(savedQuestions)
-        .values([{  userId, questionId }]);
+      await db.insert(savedQuestions).values([{ userId, questionId }]);
     }
 
     revalidatePath(path);
@@ -181,18 +143,21 @@ export async function getSavedQuestions(params: GetSavedQuestionsParams) {
   const offset = (page - 1) * pageSize;
 
   try {
-    const user = await db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.id, userId),
+    console.log("Fetching saved questions for user:", userId);
+    const user = await db.query.user.findFirst({
+      where: (user, { eq }) => eq(user.id, userId),
     });
 
     if (!user) {
-      return { question: [] };
+      console.log("User not found:", userId);
+      return { question: [], isNext: false };
     }
 
     const filters: any = { authorId: user.id };
 
     if (searchQuery) {
       filters.title = { $ilike: `%${searchQuery}%` };
+      console.log("Applying search query filter:", searchQuery);
     }
 
     let orderBy: any;
@@ -212,18 +177,25 @@ export async function getSavedQuestions(params: GetSavedQuestionsParams) {
       default:
         orderBy = { createdAt: "desc" };
     }
+    console.log("Applying order by filter:", filter);
 
     const savedQuestions = await db.query.questions.findMany({
       where: filters,
       orderBy,
-      limit: pageSize,
+      limit: pageSize + 1, // Fetch one extra record
       offset,
     });
 
-    return { question: savedQuestions };
+    const isNext = savedQuestions.length > pageSize;
+    console.log("Fetched saved questions:", savedQuestions);
+
+    return {
+      question: savedQuestions.slice(0, pageSize),
+      isNext,
+    };
   } catch (error) {
-    console.error(error);
-    throw error;
+    console.error("Error fetching saved questions:", error);
+    return { question: [], isNext: false };
   }
 }
 
@@ -231,8 +203,8 @@ export async function getUserInfo(params: GetUserInfoParams) {
   const { userId } = params;
 
   try {
-    const user = await db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.id, userId),
+    const user = await db.query.user.findFirst({
+      where: (user, { eq }) => eq(user.id, userId),
     });
 
     if (!user) throw new Error("User not found");
@@ -311,7 +283,6 @@ export async function getUserInfo(params: GetUserInfoParams) {
   }
 }
 
-
 export async function getUserQuestions(params: GetUserStatsParams) {
   const { userId, page = 1, pageSize = 10 } = params;
   const offset = (page - 1) * pageSize;
@@ -327,13 +298,12 @@ export async function getUserQuestions(params: GetUserStatsParams) {
     const totalQuestions = totalQuestionsResult[0]?.count ?? 0;
 
     // Fetch questions and join with author data
-    const questionsList = await db
-      .query.questions.findMany({
-        where: (questions, { eq }) => eq(questions.authorId, userId),
-        offset,
-        limit: pageSize,
-        with: { author: true }, 
-      });
+    const questionsList = await db.query.questions.findMany({
+      where: (questions, { eq }) => eq(questions.authorId, userId),
+      offset,
+      limit: pageSize,
+      with: { author: true },
+    });
 
     const isNextQuestions = questionsList.length === pageSize;
 
@@ -343,9 +313,6 @@ export async function getUserQuestions(params: GetUserStatsParams) {
     throw error;
   }
 }
-
-
-
 
 export async function getUserAnswers(params: GetUserStatsParams) {
   const { userId, page = 1, pageSize = 10 } = params;
@@ -374,14 +341,14 @@ export async function getUserAnswers(params: GetUserStatsParams) {
           title: questions.title,
         },
         author: {
-          id: users.id,
-          name: users.name,
-          picture: users.image,
+          id: user.id,
+          name: user.name,
+          picture: user.image,
         },
       })
       .from(answers)
       .leftJoin(questions, eq(questions.id, answers.questionId))
-      .leftJoin(users, eq(users.id, answers.authorId))
+      .leftJoin(user, eq(user.id, answers.authorId))
       .where(eq(answers.authorId, userId))
       .offset(offset)
       .limit(pageSize)
@@ -399,209 +366,13 @@ export async function getUserAnswers(params: GetUserStatsParams) {
 
 
 
-
-export async function signUp(prevState: unknown, formData: FormData) {
-  try {
-    const user = signUpFormSchema.parse({
-      name: formData.get("name"),
-      email: formData.get("email"),
-      confirmPassword: formData.get("confirmPassword"),
-      password: formData.get("password"),
-    });
-    const values = {
-      id: crypto.randomUUID(),
-      ...user,
-      username: formData.get("username") as string, 
-      password: hashSync(user.password, 10),
-    };
-
-    await db.insert(users).values(values);
-
-    await sendVerificationEmail({
-      name: "",
-      resetToken: "",
-      resetTokenExpires: null,
-      email: user.email ?? "",
-      password: null,
-      id: "",
-      role: "",
-      emailVerified: null,
-      image: null,
-      createdAt: null,
-      course: null,
-      year: null,
-      username: "",
-      bio: null,
-      location: null,
-      portfolioWebsite: null,
-      reputation: null,
-      joinedAt: null
-    });
-
-    return {
-      success: true,
-      message:
-        "User created successfully. Please check your email for verification.",
-    };
-  } catch (error) {
-    return {
-      success: false,
-      message: formatError(error).includes(
-        'duplicate key value violates unique constraint "user_email_idx"'
-      )
-        ? "Email already exists"
-        : formatError(error),
-    };
-  }
-}
-export async function signInWithCredentials(
-  prevState: unknown,
-  formData: FormData
-) {
-  try {
-    const user = signInFormSchema.parse({
-      email: formData.get("email"),
-      password: formData.get("password"),
-    });
-    await signIn("credentials", user);
-    return { success: true, message: "Sign in successfully" };
-  } catch (error) {
-    if (isRedirectError(error)) {
-      throw error;
-    }
-    return { success: false, message: "Invalid email or password" };
-  }
-}
-
-export const SignInWithEmail = async (formData: any) => {
-  await signIn("email", formData);
-};
-
 export const SignInWithGoogle = async () => {
   await signIn("google");
 };
 
-export const SignOut = async (p0: { redirectTo: string; }) => {
+export const SignOut = async () => {
   await signOut();
 };
 
-// RESET PASSWORD
-const requestResetSchema = z.object({
-  email: z.string().email(),
-});
 
-// Reset Password Schema
-const resetPasswordSchema = z.object({
-  token: z.string(),
-  newPassword: z.string().min(8),
-});
-
-export const requestPasswordReset = async (formData: FormData) => {
-  try {
-    const data = requestResetSchema.parse({
-      email: formData.get("email"),
-    });
-
-    const user = await db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.email, data.email),
-    });
-
-    if (!user) {
-      throw new Error("No user found with this email address.");
-    }
-
-    // Generate a reset token
-    const resetToken = crypto.randomUUID();
-    const expiresAt = addMinutes(new Date(), 60);
-    console.log(resetToken);
-    await db
-      .update(users)
-      .set({ resetToken, resetTokenExpires: expiresAt })
-      .where(eq(users.id, user.id));
-
-    // Send reset email
-    await sendResetPasswordEmail(user, resetToken);
-
-    return {
-      success: true,
-      message: "Password reset email sent successfully.",
-    };
-  } catch (error) {
-    return { success: false, message: formatError(error) };
-  }
-};
-
-export const resetPassword = async (formData: FormData) => {
-  try {
-    const token = formData.get("token") as string;
-    const newPassword = formData.get("newPassword") as string;
-
-    const data = resetPasswordSchema.parse({
-      token,
-      newPassword,
-    });
-
-    const user = await db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.resetToken, data.token),
-    });
-
-    if (!user) {
-      throw new Error("Invalid or expired reset token.");
-    }
-
-    if (
-      user.resetTokenExpires &&
-      new Date() > new Date(user.resetTokenExpires)
-    ) {
-      throw new Error("Reset token has expired.");
-    }
-
-    const hashedPassword = hashSync(data.newPassword, 10);
-    await db
-      .update(users)
-      .set({
-        password: hashedPassword,
-        resetToken: null,
-        resetTokenExpires: null,
-      })
-      .where(eq(users.id, user.id));
-
-    revalidatePath("/sign-in");
-
-    return { success: true, message: "Password reset successfully." };
-  } catch (error) {
-    return { success: false, message: formatError(error) };
-  }
-};
-
-
-
-
-
-
-
-
-
-export async function updateProfile(user: { name: string; email: string }) {
-  try {
-    const session = await auth();
-    const currentUser = await db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.id, session?.user?.id ?? ""),
-    });
-    if (!currentUser) throw new Error("User not found");
-    await db
-      .update(users)
-      .set({
-        name: user.name,
-      })
-      .where(eq(users.id, currentUser.id));
-
-    return {
-      success: true,
-      message: "User updated successfully",
-    };
-  } catch (error) {
-    return { success: false, message: formatError(error) };
-  }
-}
 

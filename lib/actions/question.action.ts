@@ -3,7 +3,7 @@
 import {
   questions,
   tags,
-  users,
+  user,
   interactions,
   answers,
 } from "@/db/schema"; // Your schema
@@ -30,7 +30,7 @@ export async function getQuestions(params: GetQuestionParams) {
       .select()
       .from(questions)
       .leftJoin(tags, eq(tags.id, questions.tagId))
-      .leftJoin(users, eq(users.id, questions.authorId));
+      .leftJoin(user, eq(user.id, questions.authorId));
 
     if (searchQuery) {
       query.where(
@@ -122,9 +122,9 @@ export async function createQuestion(params: CreateQuestionParams) {
       .execute();
 
     await db
-      .update(users)
-      .set({ reputation: sql`${users.reputation} + 5` })
-      .where(eq(users.id, author))
+      .update(user)
+      .set({ reputation: sql`${user.reputation} + 5` })
+      .where(eq(user.id, author))
       .execute();
 
     revalidatePath(path);
@@ -150,10 +150,10 @@ export async function getQuestionById(params: GetQuestionByIdParams) {
         upvotes: questions.upvotes, 
         downvotes: questions.downvotes, 
         author: {
-          id: users.id,
-          userId: users.id,
-          name: users.name,
-          picture: users.image,
+          id: user.id,
+          userId: user.id,
+          name: user.name,
+          picture: user.image,
         },
         tags: {
           id: tags.id,
@@ -169,7 +169,7 @@ export async function getQuestionById(params: GetQuestionByIdParams) {
       })
       .from(questions)
       .leftJoin(tags, eq(tags.id, questions.tagId))
-      .leftJoin(users, eq(users.id, questions.authorId))
+      .leftJoin(user, eq(user.id, questions.authorId))
       .leftJoin(answers, eq(answers.questionId, questions.id))
       .where(eq(questions.id, questionId))
       .execute();
@@ -319,18 +319,18 @@ export async function getRecommendedQuestions(params: RecommendedParams) {
   try {
     const { userId, page = 1, pageSize = 20, searchQuery } = params;
 
-    const user = await db
+    const users = await db
       .select()
-      .from(users)
-      .where(eq(users.id, userId))
+      .from(user)
+      .where(eq(user.id, userId))
       .execute();
-    if (!user.length) throw new Error("User not found");
+    if (!users.length) throw new Error("User not found");
 
     const userInteractions = await db
       .select()
       .from(interactions)
       .leftJoin(tags, eq(tags.id, interactions.tagId))
-      .where(eq(interactions.userId, user[0].id))
+      .where(eq(interactions.userId, users[0].id))
       .execute();
 
     const userTags = userInteractions.map((interaction) => interaction.tags);
@@ -345,7 +345,7 @@ export async function getRecommendedQuestions(params: RecommendedParams) {
 
     const baseWhereClause = and(
       inArray(questions.tagId, distinctUserTagIds),
-      not(eq(questions.authorId, user[0].id))
+      not(eq(questions.authorId, users[0].id))
     );
 
     const searchWhereClause = searchQuery

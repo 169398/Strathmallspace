@@ -1,7 +1,7 @@
 import { InferModel } from "drizzle-orm";
-import { users, questions, answers } from "@/db/schema"; 
+import { user, questions, answers } from "@/db/schema"; 
 // Define the base types from the Drizzle schema
-export type IUser = InferModel<typeof users, "select">;
+export type IUser = InferModel<typeof user, "select">;
 export type IQuestion = InferModel<typeof questions, "select">;
 export type IAnswer = InferModel<typeof answers, "select">;
 

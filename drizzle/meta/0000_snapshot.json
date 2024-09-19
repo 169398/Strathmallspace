@@ -1,5 +1,5 @@
 {
-  "id": "91ae0b8e-318b-4e01-a554-e785e89ad7e2",
+  "id": "70c1d471-4fe7-49ab-a7b9-caa1631788d3",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -77,10 +77,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "account_userId_users_id_fk": {
-          "name": "account_userId_users_id_fk",
+        "account_userId_user_id_fk": {
+          "name": "account_userId_user_id_fk",
           "tableFrom": "account",
-          "tableTo": "users",
+          "tableTo": "user",
           "columnsFrom": [
             "userId"
           ],
@@ -155,10 +155,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "answers_author_id_users_id_fk": {
-          "name": "answers_author_id_users_id_fk",
+        "answers_author_id_user_id_fk": {
+          "name": "answers_author_id_user_id_fk",
           "tableFrom": "answers",
-          "tableTo": "users",
+          "tableTo": "user",
           "columnsFrom": [
             "author_id"
           ],
@@ -243,10 +243,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "interactions_user_id_users_id_fk": {
-          "name": "interactions_user_id_users_id_fk",
+        "interactions_user_id_user_id_fk": {
+          "name": "interactions_user_id_user_id_fk",
           "tableFrom": "interactions",
-          "tableTo": "users",
+          "tableTo": "user",
           "columnsFrom": [
             "user_id"
           ],
@@ -435,10 +435,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "questions_author_id_users_id_fk": {
-          "name": "questions_author_id_users_id_fk",
+        "questions_author_id_user_id_fk": {
+          "name": "questions_author_id_user_id_fk",
           "tableFrom": "questions",
-          "tableTo": "users",
+          "tableTo": "user",
           "columnsFrom": [
             "author_id"
           ],
@@ -484,10 +484,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "saved_questions_user_id_users_id_fk": {
-          "name": "saved_questions_user_id_users_id_fk",
+        "saved_questions_user_id_user_id_fk": {
+          "name": "saved_questions_user_id_user_id_fk",
           "tableFrom": "saved_questions",
-          "tableTo": "users",
+          "tableTo": "user",
           "columnsFrom": [
             "user_id"
           ],
@@ -539,10 +539,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "session_userId_users_id_fk": {
-          "name": "session_userId_users_id_fk",
+        "session_userId_user_id_fk": {
+          "name": "session_userId_user_id_fk",
           "tableFrom": "session",
-          "tableTo": "users",
+          "tableTo": "user",
           "columnsFrom": [
             "userId"
           ],
@@ -614,8 +614,8 @@
         }
       }
     },
-    "public.users": {
-      "name": "users",
+    "public.user": {
+      "name": "user",
       "schema": "",
       "columns": {
         "id": {
@@ -675,6 +675,12 @@
           "notNull": false,
           "default": "now()"
         },
+        "year": {
+          "name": "year",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "email": {
           "name": "email",
           "type": "varchar(255)",
@@ -687,11 +693,11 @@
           "primaryKey": false,
           "notNull": false
         },
-        "picture": {
-          "name": "picture",
-          "type": "varchar(255)",
+        "image": {
+          "name": "image",
+          "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "location": {
           "name": "location",
@@ -730,15 +736,15 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "users_username_unique": {
-          "name": "users_username_unique",
+        "user_username_unique": {
+          "name": "user_username_unique",
           "nullsNotDistinct": false,
           "columns": [
             "username"
           ]
         },
-        "users_email_unique": {
-          "name": "users_email_unique",
+        "user_email_unique": {
+          "name": "user_email_unique",
           "nullsNotDistinct": false,
           "columns": [
             "email"

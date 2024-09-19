@@ -1,55 +1,29 @@
-import { Metadata } from 'next'
-import Image from 'next/image'
+
+import SignIn from '@/components/shared/SignIn'
+import { buttonVariants } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
+import { FC } from 'react'
 
-
-
-import CredentialsSignInForm from './credentials-signin-form'
-import { auth } from '@/auth'
-import GoogleSignInForm from './google-signin-form'
-import { APP_NAME } from '@/constants'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-
-export const metadata: Metadata = {
-  title: `Sign In - ${APP_NAME}`,
-}
-
-export default async function SignIn({
-  searchParams: { callbackUrl },
-}: {
-  searchParams: {
-    callbackUrl: string
-  }
-}) {
-  const session = await auth()
-  if (session) {
-    return redirect(callbackUrl || '/onboard')
-  }
-
+const page: FC = () => {
   return (
-    <div className="mx-auto w-full max-w-md">
-      <Card>
-        <CardHeader className="space-y-4">
-          <Link href="/" className="flex-center">
-            <Image
-              src="/assets/icons/logo.png"
-              width={100}
-              height={100}
-              alt={`${APP_NAME} logo`}
-            />
-          </Link>
-          <CardTitle className="text-center">Welcome Back</CardTitle>
-          <CardDescription className="text-center">
-             Sign in to your account
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-           <GoogleSignInForm /> 
-           {/* <EmailSigninForm />  */}
-          <CredentialsSignInForm />
-        </CardContent>
-      </Card>
+    <div className='absolute inset-0'>
+      <div className='mx-auto flex h-full max-w-2xl flex-col items-center justify-center gap-20'>
+        <Link
+          href='/'
+          className={cn(
+            buttonVariants({ variant: 'ghost' }),
+            'self-start -mt-20'
+          )}>
+          <ChevronLeft className='mr-2 size-4' />
+          Home
+        </Link>
+
+        <SignIn />
+      </div>
     </div>
   )
 }
+
+export default page
