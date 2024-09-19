@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1726568960815,
-      "tag": "0000_quiet_crusher_hogan",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1726571162440,
-      "tag": "0001_previous_skreet",
+      "when": 1726741624664,
+      "tag": "0000_strange_invaders",
       "breakpoints": true
     }
   ]

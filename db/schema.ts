@@ -5,13 +5,14 @@ import {
   timestamp,
   integer,
   uuid,
-  primaryKey,
 } from "drizzle-orm/pg-core";
 import { relations, type InferSelectModel } from "drizzle-orm";
+import { primaryKey } from "drizzle-orm/pg-core/primary-keys";
+
 import { AdapterAccount } from "next-auth/adapters";
 
 // Users Table
-export const users = pgTable("users", {
+export const user = pgTable("user", {
   id: uuid("id").defaultRandom().primaryKey().notNull(),
 
   name: varchar("name", { length: 255 }).notNull(),
@@ -40,7 +41,7 @@ export const accounts = pgTable(
   {
     userId: uuid("userId")
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => user.id, { onDelete: "cascade" }),
     type: text("type").$type<AdapterAccount>().notNull(),
     provider: text("provider").notNull(),
     providerAccountId: text("providerAccountId").notNull(),
@@ -64,7 +65,7 @@ export const sessions = pgTable("session", {
   sessionToken: text("sessionToken").primaryKey(),
   userId: uuid("userId")
     .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+    .references(() => user.id, { onDelete: "cascade" }),
   expires: timestamp("expires", { mode: "date" }).notNull(),
 });
 
@@ -90,47 +91,36 @@ export const tags = pgTable("tags", {
   questions: integer("questions").array().default([]),
 });
 
-// Questions Table
+// Simplified Questions Table
 export const questions = pgTable("questions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  title: text("title").notNull(),
-  content: text("content").notNull(),
-  views: integer("views").default(0),
-  upvotes: integer("upvotes").array().default([]),
-  downvotes: integer("downvotes").array().default([]),
-  answersCount: integer("answers_count").default(0),
-  tags: integer("tags").array().default([]),
-  answers: integer("answers").array().default([]),
-  authorId: uuid("author_id")
-    .references(() => users.id)
+  id: uuid("id").primaryKey().defaultRandom(), // Unique identifier
+  title: text("title").notNull(), // Question title
+  content: text("content").notNull(), // Question content
+  views: integer("views").default(0), // View count
+  upvotes: integer("upvotes").default(0), // Simplified upvotes count
+  downvotes: integer("downvotes").default(0), // Simplified downvotes count
+  answersCount: integer("answers_count").default(0), // Simplified answers count
+  authorId: uuid("author_id") // Author reference
+    .references(() => user.id)
     .notNull(),
   createdAt: timestamp("created_at").defaultNow(),
+ 
+});
+
+// Associative table for tags to enable many-to-many relationship
+export const questionTags = pgTable("question_tags", {
+  questionId: uuid("question_id")
+    .references(() => questions.id)
+    .notNull(),
   tagId: uuid("tag_id")
     .references(() => tags.id)
     .notNull(),
 });
-
-// Question Tags (Many-to-Many relation between Questions and Tags)
-export const questionTags = pgTable(
-  "question_tags",
-  {
-    questionId: uuid("question_id")
-      .references(() => questions.id)
-      .notNull(),
-    tagId: uuid("tag_id")
-      .references(() => tags.id)
-      .notNull(),
-  },
-  (table) => ({
-    primaryKey: [table.questionId, table.tagId],
-  })
-);
-
 // Answers Table
 export const answers = pgTable("answers", {
   id: uuid("id").primaryKey().defaultRandom(),
   authorId: uuid("author_id")
-    .references(() => users.id)
+    .references(() => user.id)
     .notNull(),
   questionId: uuid("question_id")
     .references(() => questions.id)
@@ -145,7 +135,7 @@ export const answers = pgTable("answers", {
 export const interactions = pgTable("interactions", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id")
-    .references(() => users.id)
+    .references(() => user.id)
     .notNull(),
   action: varchar("action", { length: 50 }).notNull(),
   tagId: uuid("tag_id").references(() => tags.id),
@@ -160,7 +150,7 @@ export const savedQuestions = pgTable(
   "saved_questions",
   {
     userId: uuid("user_id")
-      .references(() => users.id)
+      .references(() => user.id)
       .notNull(),
     questionId: uuid("question_id")
       .references(() => questions.id)
@@ -173,7 +163,7 @@ export const savedQuestions = pgTable(
 
 
 // Relations
-export const userRelations = relations(users, ({ many }) => ({
+export const userRelations = relations(user, ({ many }) => ({
   questions: many(questions),
   answers: many(answers),
   interactions: many(interactions),
@@ -181,18 +171,18 @@ export const userRelations = relations(users, ({ many }) => ({
 }));
 
 export const questionRelations = relations(questions, ({ one, many }) => ({
-  author: one(users, {
+  author: one(user, {
     fields: [questions.authorId],
-    references: [users.id],
+    references: [user.id],
   }),
   answers: many(answers),
   tags: many(questionTags),
 }));
 
 export const answerRelations = relations(answers, ({ one }) => ({
-  author: one(users, {
+  author: one(user, {
     fields: [answers.authorId],
-    references: [users.id],
+    references: [user.id],
   }),
   question: one(questions, {
     fields: [answers.questionId],
@@ -201,9 +191,9 @@ export const answerRelations = relations(answers, ({ one }) => ({
 }));
 
 export const interactionRelations = relations(interactions, ({ one }) => ({
-  user: one(users, {
+  user: one(user, {
     fields: [interactions.userId],
-    references: [users.id],
+    references: [user.id],
   }),
   question: one(questions, {
     fields: [interactions.questionId],
@@ -216,9 +206,9 @@ export const interactionRelations = relations(interactions, ({ one }) => ({
 }));
 
 export const savedQuestionRelations = relations(savedQuestions, ({ one }) => ({
-  user: one(users, {
+  user: one(user, {
     fields: [savedQuestions.userId],
-    references: [users.id],
+    references: [user.id],
   }),
   question: one(questions, {
     fields: [savedQuestions.questionId],
@@ -227,7 +217,7 @@ export const savedQuestionRelations = relations(savedQuestions, ({ one }) => ({
 }));
 
 // Infer types
-export type User = InferSelectModel<typeof users>;
+export type User = InferSelectModel<typeof user>;
 export type Question = InferSelectModel<typeof questions>;
 export type Answer = InferSelectModel<typeof answers>;
 export type Tag = InferSelectModel<typeof tags>;

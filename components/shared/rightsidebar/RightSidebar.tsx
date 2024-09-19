@@ -11,7 +11,7 @@ const RightSidebar = async () => {
   const popularTags = await getPopularTags();
 
   return (
-    <section className="dark: custom-scrollbar navbar_lg_background sticky right-0 top-0 flex h-screen w-[320px] flex-col overflow-y-auto border-l-2 p-6 pt-20  shadow-md dark:border-none max-xl:hidden">
+    <section className="dark: custom-scrollbar navbar_lg_background sticky right-0 top-0 flex h-screen w-[320px] flex-col overflow-y-auto border-l-2 p-6 pt-20  shadow-md max-xl:hidden dark:border-none">
       <h3 className="h3-bold text-invert ">Top Question</h3>
       <div className="custom-scrollbar h-1/2 overflow-y-auto">
         <div className="mt-2 flex w-full flex-col gap-[30px]">

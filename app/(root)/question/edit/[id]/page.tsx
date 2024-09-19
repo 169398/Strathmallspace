@@ -1,9 +1,8 @@
-import { auth } from '@/auth';
-import Question from '@/components/forms/Question';
-import { getQuestionById } from '@/lib/actions/question.action';
-import { getUserById } from '@/lib/actions/user.action';
+import { auth } from "@/lib/auth";
+import Question from "@/components/forms/Question";
+import { getQuestionById } from "@/lib/actions/question.action";
+import { getUserById } from "@/lib/actions/user.action";
 import type { Metadata } from "next";
-
 
 export const metadata: Metadata = {
   title: "StrathSpace | Edit Question",

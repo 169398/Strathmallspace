@@ -1,4 +1,4 @@
-import { questions, users, answers, tags } from "@/db/schema";
+import { questions, user, answers, tags } from "@/db/schema";
 import { ilike } from "drizzle-orm";
 import { SearchParams } from "./shared.types";
 import db from "@/db/drizzle";
@@ -20,10 +20,10 @@ export async function globalSearch(params: SearchParams) {
         idField: questions.id,
       },
       {
-        table: users,
-        searchField: users.name,
+        table: user,
+        searchField: user.name,
         type: "user",
-        idField: users.id,
+        idField: user.id,
       },
       {
         table: answers,

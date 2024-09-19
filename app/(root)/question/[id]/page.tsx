@@ -10,10 +10,7 @@ import { formatNumber, getTimeStamps } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { auth } from "@/auth";
-
-
-
+import { auth } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "StrathSpace | Question",
@@ -37,7 +34,7 @@ const Page = async ({ params, searchParams }: any) => {
         <div className="flex w-full flex-col-reverse justify-between gap-5 sm:flex-row sm:items-center sm:gap-2">
           <Link
             className="flex items-center justify-start gap-1"
-            href={`/profile/${result.author?.userId}`} 
+            href={`/profile/${result.author?.userId}`}
           >
             <Image
               className="rounded-full"
@@ -55,19 +52,22 @@ const Page = async ({ params, searchParams }: any) => {
               type="Question"
               itemId={JSON.stringify(result.id)}
               userId={user ? JSON.stringify(user.id) : ""}
-              upvotes={result.upvotes?.length ?? 0}
+              upvotes={
+                Array.isArray(result.upvotes) ? result.upvotes.length : 0
+              }
               hasUpvoted={
-                user
-                  ? result.upvotes?.includes(Number(user.id)) ?? false
+                Array.isArray(result.upvotes) && user
+                  ? result.upvotes.includes(Number(user.id))
                   : false
               }
-              downvotes={result.downvotes?.length ?? 0}
+              downvotes={
+                Array.isArray(result.downvotes) ? result.downvotes.length : 0
+              }
               hasDownvoted={
-                user
-                  ? result.downvotes?.includes(Number(user.id)) ?? false
+                Array.isArray(result.downvotes) && user
+                  ? result.downvotes.includes(Number(user.id))
                   : false
               }
-              hasSaved={user?.saved?.includes(result.id) ?? false}
             />
           </div>
         </div>

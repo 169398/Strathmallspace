@@ -1,7 +1,7 @@
 import { InferModel } from "drizzle-orm";
-import { users, questions, answers } from "@/db/schema"; 
+import { user, questions, answers } from "@/db/schema"; 
 // Define the base types from the Drizzle schema
-export type IUser = InferModel<typeof users, "select">;
+export type IUser = InferModel<typeof user, "select">;
 export type IQuestion = InferModel<typeof questions, "select">;
 export type IAnswer = InferModel<typeof answers, "select">;
 
@@ -52,11 +52,9 @@ export interface GetQuestionParams {
 export interface CreateQuestionParams {
   title: string;
   content: string;
-  tags: string[]; // List of tag IDs or names
-  author: string; // Should reference a user ID
+  tags: string[];
+  author: string; 
   path: string;
-  tagId: string;
-  
 }
 
 // Voting on an answer

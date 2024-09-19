@@ -1,14 +1,14 @@
-import { getUserQuestions } from '@/lib/actions/user.action';
-import QuestionCard from '../cards/QuestionCard';
-import NoResult from './NoResult';
-import Pagination from './Pagination';
+import { getUserQuestions } from "@/lib/actions/user.action";
+import QuestionCard from "../cards/QuestionCard";
+import NoResult from "./NoResult";
+import Pagination from "./Pagination";
 
 interface Props {
   searchParams: any;
   userId: string;
-  userSessionId?: string | null;
+  userSessionId?: string|null;
 }
-const QuestionTab = async ({ searchParams, userId}: Props) => {
+const QuestionTab = async ({ searchParams, userId,  }: Props) => {
   const result = await getUserQuestions({
     userId,
     page: searchParams.page ? +searchParams.page : 1,
@@ -20,27 +20,18 @@ const QuestionTab = async ({ searchParams, userId}: Props) => {
         result.questions.map((question) => (
           <QuestionCard
             key={question.id}
-            id={question.id.toString()}
+            id={question.id}
             title={question.title}
-            tags={question.tags?.map(tag => ({ id: tag.toString(), name: `Tag ${tag}` })) ?? []}
-            author={
-              question.author
-                ? {
-                    id: question.author.id.toString(),
-                    name: question.author.name,
-                    picture: question.author.image ?? "",
-                    userId: question.author.id ?? "",
-                  }
-                : {
-                    id: "",
-                    name: "Unknown",
-                  picture: "",
-                    userId: "",
-                  }
-            } 
-            upvotes={question.upvotes?.map(upvote => ({ id: upvote.toString() })) ?? []}
+            tags={question.tags.map(tag => ({ id: tag.tagId, name: tag.tagId }))}
+            author={{
+              id: question.author.id,
+              name: question.author.name,
+              picture: question.author.image?? "",
+              userId: question.author.id,
+            }}
+            upvotes={Array.isArray(question.upvotes) ? question.upvotes : []}
             views={question.views ?? 0}
-            answers={question.answers?.map(answer => ({ id: answer.toString() })) ?? []}
+            answers={question.answers ?? []}
             createdAt={question.createdAt ?? new Date()}
           />
         ))
@@ -57,7 +48,7 @@ const QuestionTab = async ({ searchParams, userId}: Props) => {
       <div className="mt-10 w-full items-center">
         <Pagination
           pageNumber={searchParams?.page ? +searchParams.page : 1}
-          isNext={result.isNextQuestions} // Ensure isNextQuestions is passed
+          isNext={result.isNextQuestions}
         />
       </div>
     </div>

@@ -10,7 +10,7 @@ import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 import type { Metadata } from "next";
-import { auth } from "@/auth";
+import { auth } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "StrathSpace | Profile",

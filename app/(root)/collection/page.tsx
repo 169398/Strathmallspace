@@ -1,13 +1,12 @@
-import { auth } from '@/auth';
-import QuestionCard from '@/components/cards/QuestionCard';
-import NoResult from '@/components/shared/NoResult';
-import Pagination from '@/components/shared/Pagination';
-import Filter from '@/components/shared/filter';
-import LocalSearchBar from '@/components/shared/search/LocalSearchBar';
-import { QuestionFilters } from '@/constants/filters';
-import { getSavedQuestions } from '@/lib/actions/user.action';
+import { auth } from "@/lib/auth";
+import QuestionCard from "@/components/cards/QuestionCard";
+import NoResult from "@/components/shared/NoResult";
+import Pagination from "@/components/shared/Pagination";
+import Filter from "@/components/shared/filter";
+import LocalSearchBar from "@/components/shared/search/LocalSearchBar";
+import { QuestionFilters } from "@/constants/filters";
+import { getSavedQuestions } from "@/lib/actions/user.action";
 import type { Metadata } from "next";
-
 
 export const metadata: Metadata = {
   title: "StrathSpace | collection",
@@ -16,16 +15,19 @@ export const metadata: Metadata = {
 
 export default async function Home({ searchParams }: any) {
   const session = await auth();
-  const  userId = session?.user?.id;
+  const userId = session?.user?.id;
   if (!userId) return null;
 
-
-  const result = await getSavedQuestions({
-     userId,
+  const result = (await getSavedQuestions({
+    userId,
     searchQuery: searchParams?.q,
     filter: searchParams?.filter,
     page: searchParams?.page ? +searchParams.page : 1,
-  }) as { question: any[], isNext: boolean };
+  })) as { question: any[]; isNext: boolean };
+
+  // Add console.log to check if questions are fetched correctly
+  console.log(result.question);
+
   return (
     <main>
       <h1 className="sm:h1-bold h2-bold text-invert w-full">Saved Questions</h1>
@@ -45,7 +47,7 @@ export default async function Home({ searchParams }: any) {
       </div>
 
       <div className="mt-10 flex w-full flex-col gap-6">
-        {result.question.length > 0 ? (
+        {result?.question && result.question.length > 0 ? (
           result.question.map((question: any) => (
             <QuestionCard
               key={question._id}
@@ -61,15 +63,17 @@ export default async function Home({ searchParams }: any) {
           ))
         ) : (
           <NoResult
-            title="You haven&apos;t saved any questions yet."
-            description="You haven&apos;t saved any questions yet. Save Questions you would want to visit letter 💡"
+            title="You haven't saved any questions yet."
+            description="You haven't saved any questions yet. Save Questions you would want to visit later 💡"
             hasButton={false}
-          
           />
         )}
       </div>
       <div className="mt-10 w-full items-center">
-        <Pagination pageNumber={searchParams?.page ? +searchParams.page : 1} isNext={result.isNext}/>
+        <Pagination
+          pageNumber={searchParams?.page ? +searchParams.page : 1}
+          isNext={result.isNext}
+        />
       </div>
     </main>
   );

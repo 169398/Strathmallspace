@@ -1,4 +1,3 @@
-'use client';
 
 import React from "react";
 import {
@@ -11,10 +10,10 @@ import Image from "next/image";
 import Link from "next/link";
 import NavContent from "./NavContent";
 import { Button } from "@/components/ui/button";
-import { auth } from "@/auth";
+import { auth } from "@/lib/auth";
 
 const MobileNav = async () => {
-  const  session  = await auth();
+  const session = await auth();
 
   return (
     <div>
@@ -39,7 +38,7 @@ const MobileNav = async () => {
               width={23}
               alt="StrathSpace"
             /> */}
-            <p className="h2-bold text-invert font-spaceGrotesk">
+            <p className="h2-bold text-invert font-sans">
               <span className="primary-text-gradient">StrathSpace</span>
             </p>
           </Link>

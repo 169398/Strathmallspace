@@ -1,3 +1,4 @@
+/* eslint-disable tailwindcss/no-custom-classname */
 'use client';
 import { useTheme } from '@/context/themeProvider';
 import React, { useRef, useState } from 'react';
@@ -74,7 +75,6 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
           tags: values.tags,
           author: JSON.parse(userId),
           path: pathname,
-          tagId: values.title, 
         });
         router.push('/');
       }

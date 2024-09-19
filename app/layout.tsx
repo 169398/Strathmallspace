@@ -6,7 +6,7 @@ import { Inter, Space_Grotesk } from "next/font/google";
 import type { Metadata } from "next";
 import { ThemeProvider } from "@/context/themeProvider";
 import { constructMetadata } from "@/lib/metadata";
-import { SessionProvider } from "next-auth/react"; 
+import Providers from "@/components/shared/Providers";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -24,18 +24,21 @@ export const metadata: Metadata = constructMetadata();
 
 export default function RootLayout({
   children,
+  authModal,
 }: {
   children: React.ReactNode;
+  authModal: React.ReactNode;
 }) {
   return (
     <html lang="en">
       <body
-        className={`${inter.variable} ${spaceGrotesk.variable} custom-scrollbar relative`}
+        className={`${inter.variable} ${spaceGrotesk.variable} custom-scrollbar relative  min-h-screen bg-slate-50  antialiased  `}
       >
-        <SessionProvider>
-          {" "}
-          <ThemeProvider> {children} </ThemeProvider>
-        </SessionProvider>
+        <Providers>
+          <ThemeProvider>
+            {authModal} <div className=" mx-auto h-full  ">{children}</div>
+          </ThemeProvider>
+        </Providers>
       </body>
     </html>
   );

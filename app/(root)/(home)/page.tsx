@@ -1,34 +1,33 @@
-import HomeFilters from '@/components/Home/HomeFilters';
-import NoResult from '@/components/shared/NoResult';
-import QuestionCard from '@/components/cards/QuestionCard';
-import Filter from '@/components/shared/filter';
-import LocalSearchBar from '@/components/shared/search/LocalSearchBar';
-import { Button } from '@/components/ui/button';
-import { HomePageFilters } from '@/constants/filters';
+import HomeFilters from "@/components/Home/HomeFilters";
+import NoResult from "@/components/shared/NoResult";
+import QuestionCard from "@/components/cards/QuestionCard";
+import Filter from "@/components/shared/filter";
+import LocalSearchBar from "@/components/shared/search/LocalSearchBar";
+import { Button } from "@/components/ui/button";
+import { HomePageFilters } from "@/constants/filters";
 import {
   getQuestions,
   getRecommendedQuestions,
-} from '@/lib/actions/question.action';
-import Link from 'next/link';
-import Pagination from '@/components/shared/Pagination';
+} from "@/lib/actions/question.action";
+import Link from "next/link";
+import Pagination from "@/components/shared/Pagination";
 import type { Metadata } from "next";
-import { auth } from '@/auth';
-
+import { auth } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "StrathSpace | Home",
-  description: "Explore all questions on StrathSpace. Ask a question and get answers from the community.",
+  description:
+    "Explore all questions on StrathSpace. Ask a question and get answers from the community.",
 };
 
 export default async function Home({ searchParams }: any) {
   const session = await auth();
 
-  
   const userId = session?.user?.id;
 
   let result: any;
 
-  if (searchParams?.f === 'recommended') {
+  if (searchParams?.f === "recommended") {
     if (userId) {
       result = await getRecommendedQuestions({
         userId,
@@ -42,7 +41,6 @@ export default async function Home({ searchParams }: any) {
       };
     }
   } else {
-    
     result = await getQuestions({
       searchQuery: searchParams?.q,
       filter: searchParams?.f,
