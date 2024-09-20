@@ -29,7 +29,7 @@ const QuestionTab = async ({ searchParams, userId,  }: Props) => {
               picture: question.author.image?? "",
               userId: question.author.id,
             }}
-            upvotes={Array.isArray(question.upvotes) ? question.upvotes : []}
+            upvotes={Array.isArray(question.upvotes) ? question.upvotes.map(upvote => ({ id: upvote.toString() })) : []}
             views={question.views ?? 0}
             answers={question.answers ?? []}
             createdAt={question.createdAt ?? new Date()}

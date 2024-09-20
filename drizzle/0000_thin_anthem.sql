@@ -44,8 +44,8 @@ CREATE TABLE IF NOT EXISTS "questions" (
 	"title" text NOT NULL,
 	"content" text NOT NULL,
 	"views" integer DEFAULT 0,
-	"upvotes" integer DEFAULT 0,
-	"downvotes" integer DEFAULT 0,
+	"upvotes" integer[] DEFAULT '{}',
+	"downvotes" integer[] DEFAULT '{}',
 	"answers_count" integer DEFAULT 0,
 	"author_id" uuid NOT NULL,
 	"created_at" timestamp DEFAULT now()
