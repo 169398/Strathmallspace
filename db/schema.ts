@@ -97,14 +97,13 @@ export const questions = pgTable("questions", {
   title: text("title").notNull(), // Question title
   content: text("content").notNull(), // Question content
   views: integer("views").default(0), // View count
-  upvotes: integer("upvotes").default(0), // Simplified upvotes count
-  downvotes: integer("downvotes").default(0), // Simplified downvotes count
+  upvotes: integer("upvotes").array().default([]), // Change upvotes to integer[] array
+  downvotes: integer("downvotes").array().default([]), // Simplified downvotes count
   answersCount: integer("answers_count").default(0), // Simplified answers count
   authorId: uuid("author_id") // Author reference
     .references(() => user.id)
     .notNull(),
   createdAt: timestamp("created_at").defaultNow(),
- 
 });
 
 // Associative table for tags to enable many-to-many relationship
@@ -177,6 +176,17 @@ export const questionRelations = relations(questions, ({ one, many }) => ({
   }),
   answers: many(answers),
   tags: many(questionTags),
+}));
+
+export const questionTagRelations = relations(questionTags, ({ one }) => ({
+  question: one(questions, {
+    fields: [questionTags.questionId],
+    references: [questions.id],
+  }),
+  tag: one(tags, {
+    fields: [questionTags.tagId],
+    references: [tags.id],
+  }),
 }));
 
 export const answerRelations = relations(answers, ({ one }) => ({

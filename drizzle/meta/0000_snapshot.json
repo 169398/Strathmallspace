@@ -1,5 +1,5 @@
 {
-  "id": "8bd0d5f5-eb17-4410-b0db-e019934688a0",
+  "id": "3b84f704-dc8b-4718-8f67-8046a4a16c89",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -380,17 +380,17 @@
         },
         "upvotes": {
           "name": "upvotes",
-          "type": "integer",
+          "type": "integer[]",
           "primaryKey": false,
           "notNull": false,
-          "default": 0
+          "default": "'{}'"
         },
         "downvotes": {
           "name": "downvotes",
-          "type": "integer",
+          "type": "integer[]",
           "primaryKey": false,
           "notNull": false,
-          "default": 0
+          "default": "'{}'"
         },
         "answers_count": {
           "name": "answers_count",
