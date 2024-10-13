@@ -1,8 +1,6 @@
 /* eslint-disable tailwindcss/no-custom-classname */
 'use client';
-import { useTheme } from '@/context/themeProvider';
-import React, { useRef, useState } from 'react';
-import { Editor } from '@tinymce/tinymce-react';
+import React, {  useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -22,6 +20,7 @@ import { Badge } from '../ui/badge';
 import Image from 'next/image';
 import { createQuestion, updateQuestion } from '@/lib/actions/question.action';
 import { useRouter, usePathname } from 'next/navigation';
+import { Editor } from '@/components/shared/Editor';
 
 interface QuestionProps {
   type?: string;
@@ -30,21 +29,13 @@ interface QuestionProps {
 }
 
 const Question = ({ type, userId, questionDetails }: QuestionProps) => {
-  const editorRef = useRef(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
-  // Check if questionDetails is not empty or undefined before parsing
-  const parsedQuestionDetails = questionDetails
-    ? JSON.parse(questionDetails)
-    : '';
 
-  // Ensure parsedQuestionDetails is not null before accessing its properties
-  const groupedTags = parsedQuestionDetails
-    ? parsedQuestionDetails.tags.map((tag: any) => tag.name)
-    : [];
+  const parsedQuestionDetails = questionDetails ? JSON.parse(questionDetails) : '';
+  const groupedTags = parsedQuestionDetails ? parsedQuestionDetails.tags.map((tag: any) => tag.name) : [];
 
-  // 1. Define your form.
   const form = useForm<z.infer<typeof QuestionsSchema>>({
     resolver: zodResolver(QuestionsSchema),
     defaultValues: {
@@ -54,24 +45,24 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
     },
   });
 
-  // 2. Define a submit handler.
+  // Submit handler that integrates with the new Editor
   async function onSubmit(values: z.infer<typeof QuestionsSchema>) {
     setIsSubmitting(true);
     try {
-      
+      const editorContent = await(window as any).editorInstance?.save();
+
       if (type === 'Edit') {
         await updateQuestion({
           questionId: parsedQuestionDetails._id,
           title: values.title,
-          content: values.explanation,
+          content: editorContent, // Updated with content from EditorJS
           path: pathname,
         });
-
         router.push(`/question/${parsedQuestionDetails._id}`);
       } else {
         await createQuestion({
           title: values.title,
-          content: values.explanation,
+          content: editorContent, // Updated with content from EditorJS
           tags: values.tags,
           author: JSON.parse(userId),
           path: pathname,
@@ -79,20 +70,16 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
         router.push('/');
       }
     } catch (error) {
+      console.error('Error submitting question', error);
     } finally {
       setIsSubmitting(false);
     }
   }
 
-  // * Define a function to handle adding tags.
-
-  const handleInputKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>,
-    field: any
-  ) => {
+  // Handle tags logic
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, field: any) => {
     if (e.key === 'Enter' && field.name === 'tags') {
       e.preventDefault();
-
       const tagInput = e.target as HTMLInputElement;
       const tagValue = tagInput.value.trim();
 
@@ -119,21 +106,16 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
     form.setValue('tags', newTags);
   };
 
-  const { mode } = useTheme();
-
   return (
     <div>
-      {' '}
       <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="flex w-full flex-col gap-10"
-        >
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex w-full flex-col gap-10">
+          {/* Title Field */}
           <FormField
             control={form.control}
             name="title"
             render={({ field }) => (
-              <FormItem className="flex w-full flex-col ">
+              <FormItem className="flex w-full flex-col">
                 <FormLabel className="paragraph-semibold text-invert">
                   Question Title <span className="text-primary">*</span>
                 </FormLabel>
@@ -144,7 +126,7 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
                     {...field}
                   />
                 </FormControl>
-                <FormDescription className="body-regular text-invert-3 mt-2.5 ">
+                <FormDescription className="body-regular text-invert-3 mt-2.5">
                   Ask your question here.
                 </FormDescription>
                 <FormMessage className="text-red-700" />
@@ -152,67 +134,29 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
             )}
           />
 
+          {/* EditorJS for Explanation */}
           <FormField
             control={form.control}
             name="explanation"
             render={({ field }) => (
               <FormItem className="flex w-full flex-col gap-3">
                 <FormLabel className="paragraph-semibold text-invert">
-                  Detailed explanation of your problem{' '}
-                  <span className="text-primary-main">*</span>
+                  Detailed explanation of your problem <span className="text-primary-main">*</span>
                 </FormLabel>
                 <FormControl className="mt-3.5">
-                  <Editor
-                    key={mode}
-                    apiKey={process.env.NEXT_PUBLIC_TINY_EDITOR_API_KEY}
-                    onBlur={field.onBlur}
-                    onEditorChange={(content) => field.onChange(content)}
-                    // @ts-ignore
-                    onInit={(evt, editor) => (editorRef.current = editor)}
-                    initialValue={parsedQuestionDetails.content || ''}
-                    init={{
-                      skin: mode === 'light' ? 'oxide' : 'oxide-dark',
-                      content_css: mode === 'light' ? 'default' : 'dark',
-                      height: 350,
-                      menubar: false,
-                      plugins: [
-                        'advlist',
-                        'autolink',
-                        'lists',
-                        'link',
-                        'image',
-                        'charmap',
-                        'preview',
-                        'anchor',
-                        'searchreplace',
-                        'visualblocks',
-                        'codesample',
-                        'fullscreen',
-                        'insertdatetime',
-                        'media',
-                        'table',
-                        'link',
-                        'quickbars', // Add the quickbars plugin here
-                      ],
-                      toolbar:
-                        'undo redo | ' +
-                        'codesample | bold italic forecolor | alignleft aligncenter | ' +
-                        'alignright alignjustify | bullist numlist link | quickbars', // Add quickbars to the toolbar
-                      content_style:
-                        'body { font-family:Inter; font-size:16px }',
-                    }}
-                  />
+                  <Editor onSubmit={function (data: { title: string; explanation: string; tags: string[]; }): void {
+                    throw new Error('Function not implemented.');
+                  } }/>
                 </FormControl>
-                <FormDescription className="body-regular text-invert-3 mt-2.5 ">
-                  Describe your question here, but remember, the more specific
-                  you are, the better the answer you&apos;ll get. Imagine
-                  you&apos;re asking a friend for help!
+                <FormDescription className="body-regular text-invert-3 mt-2.5">
+                  Describe your question here, the more specific, the better the answers you&apos;ll get.
                 </FormDescription>
                 <FormMessage className="text-red-700" />
               </FormItem>
             )}
           />
 
+          {/* Tags Field */}
           <FormField
             control={form.control}
             name="tags"
@@ -235,11 +179,9 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
                           <Badge
                             key={tag}
                             className="subtle-medium question-tag-bg flex cursor-pointer
-                            items-center  justify-center gap-2 rounded-md  px-3 py-2 uppercase duration-300 ease-in-out hover:border-red-500"
+                            items-center justify-center gap-2 rounded-md px-3 py-2 uppercase duration-300 ease-in-out hover:border-red-500"
                             onClick={() =>
-                              type !== 'Edit'
-                                ? handleTagRemove(tag, field)
-                                : () => {}
+                              type !== 'Edit' ? handleTagRemove(tag, field) : () => {}
                             }
                           >
                             {tag}
@@ -258,24 +200,17 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
                     )}
                   </>
                 </FormControl>
-                <FormDescription className="body-regular text-invert-3 mt-2.5 ">
-                  Add up to 3 tags that describe the problem you&apos;re facing.
-                  Press Enter to add each tag.
+                <FormDescription className="body-regular text-invert-3 mt-2.5">
+                  Add up to 3 tags. Press Enter to add each tag.
                 </FormDescription>
                 <FormMessage className="text-red-700" />
               </FormItem>
             )}
           />
-          <Button
-            type="submit"
-            className={`primary-gradient px-3 py-4 text-white ${isSubmitting && 'cursor-progress'}`}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <>{type === 'Edit' ? 'Updating...' : 'Posting...'}</>
-            ) : (
-              <>{type === 'Edit' ? 'Edit Question' : 'Ask Question'}</>
-            )}
+
+          {/* Submit Button */}
+          <Button type="submit" className={`primary-gradient px-3 py-4 text-white ${isSubmitting && 'cursor-progress'}`} disabled={isSubmitting}>
+            {isSubmitting ? (type === 'Edit' ? 'Updating...' : 'Posting...') : (type === 'Edit' ? 'Edit Question' : 'Ask Question')}
           </Button>
         </form>
       </Form>
