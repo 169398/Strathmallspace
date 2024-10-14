@@ -3,8 +3,8 @@ import React from "react";
 import RenderTags from "../shared/RenderTags";
 import Metric from "../shared/Metric";
 import { formatNumber, getTimeStamps } from "@/lib/utils";
-import { useSession } from "next-auth/react";
 import EditDeleteAction from "../shared/EditDeleteAction";
+import { auth } from "@/lib/auth";
 
 interface QuestionCardProps {
   id: string;
@@ -22,25 +22,26 @@ interface QuestionCardProps {
   createdAt: Date;
 }
 
-const QuestionCard = ({
+const QuestionCard = async ({
   id,
   title,
   tags = [],
-  author,
+  author = { id: "", name: "", picture: "", userId: "" },
   upvotes = [],
   views = 0,
   answers = [],
   createdAt,
 }: QuestionCardProps) => {
-  const { data: session } = useSession();
-  const showActionButton = session?.user?.id === author.id; 
+  const session = await auth();
+
+  const showActionButton = session?.user?.id === author.id;
 
   return (
     <div className="card-wrapper rounded-[10px] p-9 sm:px-11">
       <div className="flex flex-col-reverse items-start justify-between gap-5 sm:flex-row">
         <div>
           <span className="subtle-regular text-invert line-clamp-1 flex sm:hidden">
-            {getTimeStamps(createdAt)}
+            {getTimeStamps(new Date(createdAt))}
           </span>
           <Link href={`/question/${id}`}>
             <h3 className="sm:h3-semibold base-semibold text-invert line-clamp-1 flex-1">
@@ -56,9 +57,11 @@ const QuestionCard = ({
       </div>
 
       <div className="mt-3.5 flex flex-wrap gap-2">
-        {tags.map((tag) => (
-          <RenderTags key={tag.id} name={tag.name} _id={tag.id} />
-        ))}
+        {/* Ensure tags is an array before calling map */}
+        {Array.isArray(tags) &&
+          tags.map((tag) => (
+            <RenderTags key={tag.id} name={tag.name} _id={tag.id} />
+          ))}
       </div>
 
       <div className="flex-between mt-6 w-full flex-wrap gap-3">

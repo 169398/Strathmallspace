@@ -27,6 +27,7 @@ const Page = async ({ params, searchParams }: any) => {
   }
 
   const result = await getQuestionById({ questionId: params.id });
+  console.log("Params:", params);
 
   return (
     <>
@@ -120,8 +121,8 @@ const Page = async ({ params, searchParams }: any) => {
 
       <Answer
         question={result.content}
-        questionId={JSON.stringify(result.id)}
-        authorId={user ? JSON.stringify(user.id) : ""}
+        questionId={result.id}
+        authorId={result.author?.userId||""}
       />
 
       <AllAnswers
