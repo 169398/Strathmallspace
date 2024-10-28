@@ -1,5 +1,6 @@
 'use client';
 
+import { toast } from 'sonner';
 import { downvoteAnswer, upvoteAnswer } from '@/lib/actions/answer.action';
 import { viewQuestion } from '@/lib/actions/interaction.action';
 import {
@@ -48,79 +49,121 @@ const Voting = ({
   // TODO: add Animation and immediate update of the voting image
   const handleVote = async (action: string) => {
     if (!userId) {
-      return;
-    }
-    if (action === 'upvote') {
-      if (hasDownvoted) {
-        setDownvoted(false);
-        setDownvoteCount(downvoteCount - 1);
-      }
-      setUpvoted(!upvoted);
-      setUpvoteCount(upvoted ? upvoteCount - 1 : upvoteCount + 1);
-      if (type === 'Question') {
-        setIsSubmitting(true);
-        await upvoteQuestion({
-          questionId: JSON.parse(itemId),
-          userId: JSON.parse(userId),
-          hasDownvoted,
-          hasUpvoted,
-          path: pathname,
-        });
-        setIsSubmitting(false);
-      } else if (type === 'Answer') {
-        setIsSubmitting(true);
-        await upvoteAnswer({
-          answerId: JSON.parse(itemId),
-          userId: JSON.parse(userId),
-          hasDownvoted,
-          hasUpvoted,
-          path: pathname,
-        });
-        setIsSubmitting(false);
-      }
-      // TODO: show a tost message
+      toast.error('Please log in to vote');
       return;
     }
 
-    if (action === 'downvote') {
-      if (hasUpvoted) {
-        setUpvoted(false);
-        setUpvoteCount(upvoteCount - 1);
-      }
-      setDownvoted(!downvoted);
-      setDownvoteCount(downvoted ? downvoteCount - 1 : downvoteCount + 1);
+    try {
+      if (action === 'upvote') {
+        if (isSubmitting) return;
 
-      if (type === 'Question') {
+        if (hasDownvoted) {
+          setDownvoted(false);
+          setDownvoteCount(downvoteCount - 1);
+        }
+        
+        setUpvoted(!upvoted);
+        setUpvoteCount(upvoted ? upvoteCount - 1 : upvoteCount + 1);
+        
         setIsSubmitting(true);
-        await downvoteQuestion({
-          questionId: JSON.parse(itemId),
-          userId: JSON.parse(userId),
-          hasDownvoted,
-          hasUpvoted,
-          path: pathname,
-        });
-        setIsSubmitting(false);
-      } else if (type === 'Answer') {
-        setIsSubmitting(true);
-        await downvoteAnswer({
-          answerId: JSON.parse(itemId),
-          userId: JSON.parse(userId),
-          hasDownvoted,
-          hasUpvoted,
-          path: pathname,
-        });
-        setIsSubmitting(false);
+        if (type === 'Question') {
+          await upvoteQuestion({
+            questionId: JSON.parse(itemId),
+            userId: JSON.parse(userId),
+            hasDownvoted,
+            hasUpvoted,
+            path: pathname,
+          });
+          toast.success(upvoted ? 'Upvote removed' : 'Question upvoted!');
+        } else if (type === 'Answer') {
+          await upvoteAnswer({
+            answerId: JSON.parse(itemId),
+            userId: JSON.parse(userId),
+            hasDownvoted,
+            hasUpvoted,
+            path: pathname,
+          });
+          toast.success(upvoted ? 'Upvote removed' : 'Answer upvoted!');
+        }
       }
+
+      if (action === 'downvote') {
+        if (isSubmitting) return;
+
+        if (hasUpvoted) {
+          setUpvoted(false);
+          setUpvoteCount(upvoteCount - 1);
+        }
+        
+        setDownvoted(!downvoted);
+        setDownvoteCount(downvoted ? downvoteCount - 1 : downvoteCount + 1);
+
+        setIsSubmitting(true);
+        if (type === 'Question') {
+          await downvoteQuestion({
+            questionId: JSON.parse(itemId),
+            userId: JSON.parse(userId),
+            hasDownvoted,
+            hasUpvoted,
+            path: pathname,
+          });
+          toast.success(downvoted ? 'Downvote removed' : 'Question downvoted');
+        } else if (type === 'Answer') {
+          await downvoteAnswer({
+            answerId: JSON.parse(itemId),
+            userId: JSON.parse(userId),
+            hasDownvoted,
+            hasUpvoted,
+            path: pathname,
+          });
+          toast.success(downvoted ? 'Downvote removed' : 'Answer downvoted');
+        }
+      }
+    } catch (error) {
+      toast.error('Something went wrong. Please try again.');
+      // Revert the optimistic update
+      if (action === 'upvote') {
+        setUpvoted(!upvoted);
+        setUpvoteCount(upvoted ? upvoteCount - 1 : upvoteCount + 1);
+      } else {
+        setDownvoted(!downvoted);
+        setDownvoteCount(downvoted ? downvoteCount - 1 : downvoteCount + 1);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleSave = async () => {
-    setSaved(!saved);
-    await toggleSaveQuestion({
-      userId: JSON.parse(userId),
-      questionId: JSON.parse(itemId),
-      path: pathname,
-    });
+    if (!userId) {
+      toast.error('Please log in to save questions');
+      return;
+    }
+
+    try {
+      // Optimistic update
+      setSaved((prev) => !prev);
+
+      const response = await toggleSaveQuestion({
+        userId,
+        questionId: itemId,
+        path: pathname,
+      });
+
+      if (!response.success) {
+        // Revert optimistic update if failed
+        setSaved((prev) => !prev);
+        toast.error(response.message);
+        return;
+      }
+
+      // Show success message
+      toast.success(response.message);
+    } catch (error) {
+      // Revert optimistic update
+      setSaved((prev) => !prev);
+      toast.error('Failed to save question. Please try again.');
+    }
   };
 
   useEffect(() => {

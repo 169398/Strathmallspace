@@ -29,13 +29,21 @@ export async function getQuestions(params: GetQuestionParams) {
 
     const query = db
       .select({
-        id: questions.id,
-        title: questions.title,
-        content: questions.content,
-        createdAt: questions.createdAt,
-        views: questions.views,
-        upvotes: questions.upvotes,
-        downvotes: questions.downvotes,
+        question: {
+          id: questions.id,
+          title: questions.title,
+          content: questions.content,
+          createdAt: questions.createdAt,
+          views: questions.views,
+          upvotes: questions.upvotes,
+          downvotes: questions.downvotes,
+          tags: questions.tags,
+          answersCount: sql<number>`(
+            SELECT COUNT(*)::integer 
+            FROM ${answers} 
+            WHERE ${answers.questionId} = ${questions.id}
+          )`.mapWith(Number),
+        },
         author: {
           id: user.id,
           name: user.name,
@@ -80,17 +88,25 @@ export async function getQuestions(params: GetQuestionParams) {
       .offset(skipCount)
       .execute();
 
-    // Group questions by ID to handle multiple tags
+    // Group questions and include both tags and answers count
     const groupedQuestions = questionList.reduce((acc: any[], curr: any) => {
-      const existingQuestion = acc.find(q => q.id === curr.id);
+      const existingQuestion = acc.find(q => q.id === curr.question.id);
       if (existingQuestion) {
         if (curr.tags) {
-          existingQuestion.tags.push(curr.tags);
+          existingQuestion.tags.push({
+            id: curr.tags.id,
+            name: curr.tags.name,
+          });
         }
       } else {
         acc.push({
-          ...curr,
-          tags: curr.tags ? [curr.tags] : [],
+          ...curr.question,
+          author: curr.author,
+          tags: curr.tags ? [{
+            id: curr.tags.id,
+            name: curr.tags.name,
+          }] : [],
+          answersCount: curr.question.answersCount || 0,
         });
       }
       return acc;
@@ -483,6 +499,15 @@ export async function getRecommendedQuestions(params: RecommendedParams) {
         views: questions.views,
         upvotes: questions.upvotes,
         downvotes: questions.downvotes,
+        answersCount: sql<number>`(
+          SELECT COUNT(*)::integer 
+          FROM ${answers} 
+          WHERE ${answers.questionId} = ${questions.id}
+        )`.mapWith(Number),
+        tags: {
+          id: tags.id,
+          name: tags.name,
+        },
       })
       .from(questions)
       .leftJoin(questionTags, eq(questionTags.questionId, questions.id))

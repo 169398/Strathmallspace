@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import db from "@/db/drizzle";
-import { questions, savedQuestions, user, answers } from "@/db/schema";
+import { questions, savedQuestions, user, answers, interactions, questionTags, tags } from "@/db/schema";
 import {
   CreateUserParams,
   GetAllUsersParams,
@@ -60,20 +60,28 @@ export async function updateUser(params: UpdateUserParams) {
   const { userId, updateData, path } = params;
 
   try {
-    // Clean the update data by removing empty strings
     const cleanedUpdateData = Object.fromEntries(
       Object.entries(updateData).filter(([_, value]) => value !== '')
     );
 
-    // Perform the update
-    const updatedUser = await db
+    if (Object.keys(cleanedUpdateData).length === 0) {
+      return {
+        success: false,
+        message: "No valid data to update"
+      };
+    }
+
+    const result = await db
       .update(user)
       .set(cleanedUpdateData)
       .where(eq(user.id, userId))
       .returning();
 
-    if (!updatedUser.length) {
-      throw new Error("Failed to update user");
+    if (!result.length) {
+      return {
+        success: false,
+        message: "User not found"
+      };
     }
 
     if (path) {
@@ -83,14 +91,15 @@ export async function updateUser(params: UpdateUserParams) {
     return {
       success: true,
       message: "Profile updated successfully",
-      user: updatedUser[0],
+      user: result[0],
     };
-
   } catch (error) {
-    console.error("Error updating user:", error);
+    console.error("Error in updateUser:", error);
     return {
       success: false,
-      message: "Failed to update profile",
+      message: error instanceof Error 
+        ? error.message 
+        : "Failed to update profile"
     };
   }
 }
@@ -139,31 +148,90 @@ export async function toggleSaveQuestion(params: ToggleSaveQuestionParams) {
   const { userId, questionId, path } = params;
 
   try {
-    const existing = await db.query.savedQuestions.findFirst({
-      where: (savedQuestions, { eq, and }) =>
-        and(
-          eq(savedQuestions.userId, userId),
-          eq(savedQuestions.questionId, questionId)
-        ),
-    });
+    // Parse IDs if they're strings
+    const parsedUserId = typeof userId === 'string' ? JSON.parse(userId) : userId;
+    const parsedQuestionId = typeof questionId === 'string' ? JSON.parse(questionId) : questionId;
 
-    if (existing) {
-      await db
-        .delete(savedQuestions)
-        .where(
-          and(
-            eq(savedQuestions.userId, userId),
-            eq(savedQuestions.questionId, questionId)
-          )
-        );
-    } else {
-      await db.insert(savedQuestions).values([{ userId, questionId }]);
+    // Validate inputs
+    if (!parsedUserId || !parsedQuestionId) {
+      throw new Error('Invalid user ID or question ID');
     }
 
-    revalidatePath(path);
+    // Check if question exists first
+    const questionExists = await db
+      .select({ id: questions.id })
+      .from(questions)
+      .where(eq(questions.id, parsedQuestionId))
+      .limit(1);
+
+    if (!questionExists.length) {
+      throw new Error('Question not found');
+    }
+
+    // Check for existing saved question
+    const existing = await db
+      .select({ id: savedQuestions.id })
+      .from(savedQuestions)
+      .where(
+        and(
+          eq(savedQuestions.userId, parsedUserId),
+          eq(savedQuestions.questionId, parsedQuestionId)
+        )
+      )
+      .limit(1);
+
+    let result;
+    if (existing.length > 0) {
+      // Remove from saved questions
+      await db
+        .delete(savedQuestions)
+        .where(eq(savedQuestions.id, existing[0].id));
+
+      result = { 
+        success: true, 
+        message: "Question removed from saved",
+        action: "removed" 
+      };
+    } else {
+      // Add to saved questions
+      await db
+        .insert(savedQuestions)
+        .values({
+          userId: parsedUserId,
+          questionId: parsedQuestionId,
+        });
+      
+      result = { 
+        success: true, 
+        message: "Question saved successfully",
+        action: "saved" 
+      };
+    }
+
+    // Wrap revalidatePath in try-catch to handle cases where it's not available
+    try {
+      if (path) revalidatePath(path);
+    } catch (error) {
+      console.log('Revalidation not available in this context');
+    }
+    
+    return result;
   } catch (error) {
-    console.error(error);
-    throw error;
+    console.error("Error in toggleSaveQuestion:", error);
+    
+    if (error instanceof Error && error.message === 'Question not found') {
+      return { 
+        success: false, 
+        message: "Question not found",
+        action: "error"
+      };
+    }
+    
+    return { 
+      success: false, 
+      message: "Failed to toggle save question",
+      action: "error"
+    };
   }
 }
 export async function getSavedQuestions(params: GetSavedQuestionsParams) {
@@ -171,58 +239,99 @@ export async function getSavedQuestions(params: GetSavedQuestionsParams) {
   const offset = (page - 1) * pageSize;
 
   try {
-    console.log("Fetching saved questions for user:", userId);
-    const user = await db.query.user.findFirst({
-      where: (user, { eq }) => eq(user.id, userId),
-    });
-
-    if (!user) {
-      console.log("User not found:", userId);
-      return { question: [], isNext: false };
-    }
-
-    const filters: any = { authorId: user.id };
-
+    const baseConditions = [eq(savedQuestions.userId, userId)];
     if (searchQuery) {
-      filters.title = { $ilike: `%${searchQuery}%` };
-      console.log("Applying search query filter:", searchQuery);
+      baseConditions.push(sql`${questions.title} ILIKE ${`%${searchQuery}%`}`);
     }
 
-    let orderBy: any;
+    const query = db
+      .select({
+        savedQuestionId: savedQuestions.id,
+        question: {
+          id: questions.id,
+          title: questions.title,
+          content: questions.content,
+          views: questions.views,
+          upvotes: questions.upvotes,
+          downvotes: questions.downvotes,
+          createdAt: questions.createdAt,
+          authorId: questions.authorId,
+          answersCount: sql<number>`(
+            SELECT COUNT(*)::integer 
+            FROM ${answers} 
+            WHERE ${answers.questionId} = ${questions.id}
+          )`.mapWith(Number),
+        },
+        author: {
+          id: user.id,
+          name: user.name,
+          username: user.username,
+          image: user.image,
+        },
+        tag: {
+          id: tags.id,
+          name: tags.name,
+        }
+      })
+      .from(savedQuestions)
+      .innerJoin(questions, eq(savedQuestions.questionId, questions.id))
+      .innerJoin(user, eq(questions.authorId, user.id))
+      .leftJoin(questionTags, eq(questions.id, questionTags.questionId))
+      .leftJoin(tags, eq(questionTags.tagId, tags.id))
+      .where(and(...baseConditions))
+      .limit(pageSize + 1)
+      .offset(offset);
+
     switch (filter) {
       case "most_recent":
-        orderBy = { createdAt: "desc" };
+        query.orderBy(desc(questions.createdAt));
         break;
       case "oldest":
-        orderBy = { createdAt: "asc" };
+        query.orderBy(asc(questions.createdAt));
         break;
       case "most_voted":
-        orderBy = { upvotes: "desc" };
+        query.orderBy(desc(sql`array_length(${questions.upvotes}, 1)`));
         break;
       case "most_viewed":
-        orderBy = { views: "desc" };
+        query.orderBy(desc(questions.views));
         break;
       default:
-        orderBy = { createdAt: "desc" };
+        query.orderBy(desc(questions.createdAt));
     }
-    console.log("Applying order by filter:", filter);
 
-    const savedQuestions = await db.query.questions.findMany({
-      where: filters,
-      orderBy,
-      limit: pageSize + 1, // Fetch one extra record
-      offset,
-    });
+    const results = await query;
+    const isNext = results.length > pageSize;
 
-    const isNext = savedQuestions.length > pageSize;
-    console.log("Fetched saved questions:", savedQuestions);
+    // Group the results by question ID to combine tags
+    const groupedQuestions = results.reduce((acc: any[], curr: any) => {
+      const existingQuestion = acc.find(q => q.id === curr.question.id);
+      if (existingQuestion) {
+        if (curr.tag?.id) {
+          existingQuestion.tags.push({
+            id: curr.tag.id,
+            name: curr.tag.name,
+          });
+        }
+      } else {
+        acc.push({
+          ...curr.question,
+          author: curr.author,
+          tags: curr.tag?.id ? [{
+            id: curr.tag.id,
+            name: curr.tag.name,
+          }] : [],
+          answers: curr.question.answersCount || 0
+        });
+      }
+      return acc;
+    }, []);
 
     return {
-      question: savedQuestions.slice(0, pageSize),
+      question: groupedQuestions.slice(0, pageSize),
       isNext,
     };
   } catch (error) {
-    console.error("Error fetching saved questions:", error);
+    console.error("Error in getSavedQuestions:", error);
     return { question: [], isNext: false };
   }
 }
@@ -340,7 +449,10 @@ export async function getUserQuestions(params: GetUserStatsParams) {
       where: (questions, { eq }) => eq(questions.authorId, userId),
       offset,
       limit: pageSize,
-      with: { author: true, tags: true ,answers: true},
+      with: {
+        author: true, tags: true, answers: true, 
+        
+      },
     });
 
     const isNextQuestions = questionsList.length === pageSize;

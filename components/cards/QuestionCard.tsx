@@ -29,7 +29,7 @@ const QuestionCard = async ({
   author = { id: "", name: "", picture: "", userId: "" },
   upvotes = [], // default value is already here, but we still need null checks
   views = 0,
-  answers = [],
+  answers,
   createdAt,
 }: QuestionCardProps) => {
    

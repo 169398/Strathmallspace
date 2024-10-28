@@ -7,6 +7,7 @@ import type { Metadata } from "next";
 import { ThemeProvider } from "@/context/themeProvider";
 import { constructMetadata } from "@/lib/metadata";
 import Providers from "@/components/shared/Providers";
+import { Toaster } from "sonner";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -36,7 +37,9 @@ export default function RootLayout({
       >
         <Providers>
           <ThemeProvider>
-            {authModal} <div className=" mx-auto h-full  ">{children}</div>
+            {authModal} <div className=" mx-auto h-full  ">{children}
+            <Toaster richColors position="top-center" />
+            </div>
           </ThemeProvider>
         </Providers>
       </body>

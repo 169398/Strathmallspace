@@ -16,13 +16,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { QuestionsSchema } from "@/lib/validation";
-import { Badge } from "../ui/badge";
+import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { createQuestion, updateQuestion } from "@/lib/actions/question.action";
 import { useRouter, usePathname } from "next/navigation";
 import { uploadFiles } from "@/lib/uploadthing";
 import type EditorJS from '@editorjs/editorjs';
-import { useToast } from "../ui/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 interface QuestionProps {
   type?: string;
@@ -160,7 +160,9 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
         },
         placeholder: "Type here to write your post...",
         inlineToolbar: true,
-        data: parsedQuestionDetails.content ? JSON.parse(parsedQuestionDetails.content) : { blocks: [] },
+        data: parsedQuestionDetails?.content 
+          ? JSON.parse(parsedQuestionDetails.content) 
+          : { blocks: [] },
         tools: {
           header: Header,
           linkTool: {

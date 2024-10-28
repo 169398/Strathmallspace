@@ -155,6 +155,7 @@ export interface GetUserStatsParams {
   userId: string;
   page?: number;
   pageSize?: number;
+  
 }
 
 // Deleting a question

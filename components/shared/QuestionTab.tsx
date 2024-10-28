@@ -29,7 +29,7 @@ const QuestionTab = async ({ searchParams, userId,  }: Props) => {
             author={{
               id: question.author.id,
               name: question.author.name,
-              picture: question.author.image ?? "",
+              picture: question.author?.image ?? "",
               userId: question.author.id,
             }}
             upvotes={Array.isArray(question.upvotes) ? question.upvotes.map(upvote => ({ id: upvote.toString() })) : []}
