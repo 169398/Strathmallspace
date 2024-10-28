@@ -99,13 +99,13 @@ export interface GetQuestionByIdParams {
 }
 
 // Voting on a question
-export interface QuestionVoteParams {
+export type QuestionVoteParams = {
   questionId: string;
   userId: string;
   hasUpvoted: boolean;
   hasDownvoted: boolean;
   path: string;
-}
+};
 
 // Getting all tags with pagination and filtering
 export interface GetAllTagsParams {

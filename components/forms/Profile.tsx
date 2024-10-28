@@ -45,30 +45,37 @@ const Profile = ({ userId, user }: Props) => {
   async function onSubmit(values: z.infer<typeof ProfileSchema>) {
     setIsSubmitting(true);
     try {
+      console.log("Submitting form with values:", values);
+      
       const response = await updateUser({
         userId,
         updateData: {
           name: values.name,
           username: values.username,
-          portfolioWebsite: values.portfolioWebsite || '',
-          location: values.location || '',
-          bio: values.bio || '',
+          portfolioWebsite: values.portfolioWebsite,
+          location: values.location,
+          bio: values.bio,
         },
         path: pathname,
       });
+
+      console.log("Update response:", response);
+
       if (response.success) {
         toast.toast({
-          title: "Success", 
+          title: "Success",
           description: response.message,
         });
         router.push(`/profile/${userId}`);
       } else {
-        throw new Error(response.message);
+        throw new Error(response.message || "Failed to update profile");
       }
     } catch (error) {
+      console.error("Profile update error:", error);
       toast.toast({
         title: "Error",
         description: (error as Error).message || "Something went wrong",
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);

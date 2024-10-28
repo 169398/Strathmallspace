@@ -273,27 +273,34 @@ export async function getQuestionById(params: GetQuestionByIdParams) {
 // Upvote a question
 export async function upvoteQuestion(params: QuestionVoteParams) {
   try {
-    const { questionId,  hasDownvoted, hasUpvoted, path } = params;
+    const { questionId, userId, hasDownvoted, hasUpvoted, path } = params;
 
     if (hasUpvoted) {
-      await db
-        .update(questions)
-        .set({ upvotes: sql`${questions.upvotes} - 1` })
-        .where(eq(questions.id, questionId))
-        .execute();
-    } else if (hasDownvoted) {
+      // Remove the user's ID from upvotes array
       await db
         .update(questions)
         .set({
-          downvotes: sql`${questions.downvotes} - 1`,
-          upvotes: sql`${questions.upvotes} + 1`,
+          upvotes: sql`array_remove(${questions.upvotes}, ${userId}::uuid)`
+        })
+        .where(eq(questions.id, questionId))
+        .execute();
+    } else if (hasDownvoted) {
+      // Remove from downvotes and add to upvotes
+      await db
+        .update(questions)
+        .set({
+          downvotes: sql`array_remove(${questions.downvotes}, ${userId}::uuid)`,
+          upvotes: sql`array_append(${questions.upvotes}, ${userId}::uuid)`
         })
         .where(eq(questions.id, questionId))
         .execute();
     } else {
+      // Add the user's ID to upvotes array
       await db
         .update(questions)
-        .set({ upvotes: sql`${questions.upvotes} + 1` })
+        .set({
+          upvotes: sql`array_append(${questions.upvotes}, ${userId}::uuid)`
+        })
         .where(eq(questions.id, questionId))
         .execute();
     }
@@ -308,27 +315,34 @@ export async function upvoteQuestion(params: QuestionVoteParams) {
 // Downvote a question
 export async function downvoteQuestion(params: QuestionVoteParams) {
   try {
-    const { questionId,  hasDownvoted, hasUpvoted, path } = params;
+    const { questionId, userId, hasDownvoted, hasUpvoted, path } = params;
 
     if (hasDownvoted) {
-      await db
-        .update(questions)
-        .set({ downvotes: sql`${questions.downvotes} - 1` })
-        .where(eq(questions.id, questionId))
-        .execute();
-    } else if (hasUpvoted) {
+      // Remove the user's ID from downvotes array
       await db
         .update(questions)
         .set({
-          upvotes: sql`${questions.upvotes} - 1`,
-          downvotes: sql`${questions.downvotes} + 1`,
+          downvotes: sql`array_remove(${questions.downvotes}, ${userId}::uuid)`
+        })
+        .where(eq(questions.id, questionId))
+        .execute();
+    } else if (hasUpvoted) {
+      // Remove from upvotes and add to downvotes
+      await db
+        .update(questions)
+        .set({
+          upvotes: sql`array_remove(${questions.upvotes}, ${userId}::uuid)`,
+          downvotes: sql`array_append(${questions.downvotes}, ${userId}::uuid)`
         })
         .where(eq(questions.id, questionId))
         .execute();
     } else {
+      // Add the user's ID to downvotes array
       await db
         .update(questions)
-        .set({ downvotes: sql`${questions.downvotes} + 1` })
+        .set({
+          downvotes: sql`array_append(${questions.downvotes}, ${userId}::uuid)`
+        })
         .where(eq(questions.id, questionId))
         .execute();
     }
@@ -494,6 +508,7 @@ export async function getRecommendedQuestions(params: RecommendedParams) {
     throw error;
   }
 }
+
 
 
 

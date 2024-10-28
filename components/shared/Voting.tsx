@@ -6,11 +6,11 @@ import {
   downvoteQuestion,
   upvoteQuestion,
 } from '@/lib/actions/question.action';
-import { toggleSaveQuestion } from '@/lib/actions/user.action';
 import { formatNumber } from '@/lib/utils';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { toggleSaveQuestion } from '@/lib/actions/user.action';
 
 interface Params {
   type: string;
