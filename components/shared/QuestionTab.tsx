@@ -22,16 +22,19 @@ const QuestionTab = async ({ searchParams, userId,  }: Props) => {
             key={question.id}
             id={question.id}
             title={question.title}
-            tags={question.tags.map(tag => ({ id: tag.tagId, name: tag.tagId }))}
+            tags={question.tags.map((tag: { tagId: string } | string) => ({
+              id: typeof tag === 'string' ? tag : tag.tagId,
+              name: typeof tag === 'string' ? tag : tag.tagId
+            }))}
             author={{
               id: question.author.id,
               name: question.author.name,
-              picture: question.author.image?? "",
+              picture: question.author.image ?? "",
               userId: question.author.id,
             }}
             upvotes={Array.isArray(question.upvotes) ? question.upvotes.map(upvote => ({ id: upvote.toString() })) : []}
             views={question.views ?? 0}
-            answers={question.answers ?? []}
+            answers={Array.isArray(question.answers) ? question.answers : []}
             createdAt={question.createdAt ?? new Date()}
           />
         ))

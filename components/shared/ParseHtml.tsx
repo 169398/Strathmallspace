@@ -28,7 +28,7 @@ import "prismjs/plugins/line-numbers/prism-line-numbers.js";
 import "prismjs/plugins/line-numbers/prism-line-numbers.css";
 
 interface ParseHtmlParams {
-  content: string | null | undefined; // Allow content to be null or undefined
+  content: any; // Changed type to allow Editor.js JSON format
 }
 
 const ParseHtml = ({ content }: ParseHtmlParams) => {
@@ -36,11 +36,40 @@ const ParseHtml = ({ content }: ParseHtmlParams) => {
     Prism.highlightAll();
   }, []);
 
-  // Ensure content is a string before parsing
-  // eslint-disable-next-line no-unneeded-ternary
-  const safeContent = content ? content : ""; // Provide a default value of an empty string if content is null or undefined
+  const convertEditorJsToHtml = (content: any) => {
+    if (!content) return "";
+    
+    try {
+      // If content is a string, try to parse it as JSON
+      const data = typeof content === 'string' ? JSON.parse(content) : content;
+      
+      if (!data.blocks) return "";
 
-  return <div className="markdown w-full min-w-full">{parse(safeContent)}</div>;
+      return data.blocks.map((block: any) => {
+        switch (block.type) {
+          case 'header':
+            return `<h${block.data.level}>${block.data.text}</h${block.data.level}>`;
+          case 'paragraph':
+            return `<p>${block.data.text}</p>`;
+          case 'image':
+            return `<figure>
+              <img src="${block.data.file.url}" alt="${block.data.caption || ''}" />
+              ${block.data.caption ? `<figcaption>${block.data.caption}</figcaption>` : ''}
+            </figure>`;
+          // Add more cases for other block types as needed
+          default:
+            return '';
+        }
+      }).join('');
+    } catch (error) {
+      console.error('Error parsing content:', error);
+      return String(content); // Fallback to original content if parsing fails
+    }
+  };
+
+  const htmlContent = convertEditorJsToHtml(content);
+
+  return <div className="markdown w-full min-w-full">{parse(htmlContent)}</div>;
 };
 
 export default ParseHtml;

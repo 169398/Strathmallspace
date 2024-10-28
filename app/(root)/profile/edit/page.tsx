@@ -13,13 +13,13 @@ const Page = async ({ params }: any) => {
   const userId = session?.user?.id;
   if (!userId) return null;
 
-  const mongoUser = await getUserById(userId);
+  const User = await getUserById(userId);
   // const result = await getQuestionById({ questionId: params.id });
   return (
     <div>
       <h1 className="text-invert h1-bold">Edit Profile</h1>
       <div className="mt-9">
-        <Profile userId={userId} user={JSON.stringify(mongoUser)} />
+        <Profile userId={userId} user={User} />
       </div>
     </div>
   );

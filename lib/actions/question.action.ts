@@ -28,10 +28,27 @@ export async function getQuestions(params: GetQuestionParams) {
     const skipCount = (page - 1) * pageSize;
 
     const query = db
-      .select()
+      .select({
+        id: questions.id,
+        title: questions.title,
+        content: questions.content,
+        createdAt: questions.createdAt,
+        views: questions.views,
+        upvotes: questions.upvotes,
+        downvotes: questions.downvotes,
+        author: {
+          id: user.id,
+          name: user.name,
+          image: user.image,
+        },
+        tags: {
+          id: tags.id,
+          name: tags.name,
+        },
+      })
       .from(questions)
-      .leftJoin(questionTags, eq(questionTags.questionId, questions.id)) // Make sure to join the questionTags table
-      .leftJoin(tags, eq(tags.id, questionTags.tagId)) // Reference questionTags in this join
+      .leftJoin(questionTags, eq(questionTags.questionId, questions.id))
+      .leftJoin(tags, eq(tags.id, questionTags.tagId))
       .leftJoin(user, eq(user.id, questions.authorId));
 
     // If there's a search query, filter by question title or content
@@ -63,6 +80,22 @@ export async function getQuestions(params: GetQuestionParams) {
       .offset(skipCount)
       .execute();
 
+    // Group questions by ID to handle multiple tags
+    const groupedQuestions = questionList.reduce((acc: any[], curr: any) => {
+      const existingQuestion = acc.find(q => q.id === curr.id);
+      if (existingQuestion) {
+        if (curr.tags) {
+          existingQuestion.tags.push(curr.tags);
+        }
+      } else {
+        acc.push({
+          ...curr,
+          tags: curr.tags ? [curr.tags] : [],
+        });
+      }
+      return acc;
+    }, []);
+
     // Count total number of questions that match the search query
     const whereClause = searchQuery
       ? or(
@@ -80,7 +113,10 @@ export async function getQuestions(params: GetQuestionParams) {
     // Check if there's a next page
     const isNext = totalQuestions[0].count > skipCount + questionList.length;
 
-    return { question: questionList, isNext };
+    return { 
+      question: groupedQuestions,
+      isNext 
+    };
   } catch (error) {
     console.error(`getQuestions : ${error}`);
     throw error;
@@ -178,6 +214,14 @@ export async function getQuestionById(params: GetQuestionByIdParams) {
   try {
     const { questionId } = params;
 
+    // Add stronger validation for questionId
+    if (!questionId || questionId === 'undefined') {
+      throw new Error('Invalid Question ID');
+    }
+
+    // Convert questionId to string if it isn't already
+    const validQuestionId = questionId.toString();
+
     // Fetch the question, along with the author, tags, and answer-related fields
     const question = await db
       .select({
@@ -207,13 +251,18 @@ export async function getQuestionById(params: GetQuestionByIdParams) {
         },
       })
       .from(questions)
+      .leftJoin(questionTags, eq(questionTags.questionId, questions.id))
       .leftJoin(tags, eq(tags.id, questionTags.tagId))
       .leftJoin(user, eq(user.id, questions.authorId))
       .leftJoin(answers, eq(answers.questionId, questions.id))
-      .where(eq(questions.id, questionId))
+      .where(eq(questions.id, validQuestionId))
       .execute();
 
-    return question[0]; 
+    if (!question.length) {
+      throw new Error('Question not found');
+    }
+
+    return question[0];
   } catch (error) {
     console.error(`getQuestionById : ${error}`);
     throw error;
@@ -296,16 +345,31 @@ export async function deleteQuestion(params: DeleteQuestionParams) {
   try {
     const { questionId, path } = params;
 
-    await db.delete(questions).where(eq(questions.id, questionId)).execute();
+    // First, delete related question tags
     await db
-      .delete(answers)
-      .where(eq(answers.questionId, questionId))
+      .delete(questionTags)
+      .where(eq(questionTags.questionId, questionId))
       .execute();
+
+    // Then delete interactions
     await db
       .delete(interactions)
       .where(eq(interactions.questionId, questionId))
       .execute();
 
+    // Delete answers
+    await db
+      .delete(answers)
+      .where(eq(answers.questionId, questionId))
+      .execute();
+
+    // Finally delete the question itself
+    await db
+      .delete(questions)
+      .where(eq(questions.id, questionId))
+      .execute();
+
+    // Update tags count if needed
     await db
       .update(tags)
       .set({ questionCount: sql`${tags.questionCount} - 1` })
@@ -366,25 +430,27 @@ export async function getRecommendedQuestions(params: RecommendedParams) {
     if (!users.length) throw new Error("User not found");
 
     const userInteractions = await db
-      .select()
+      .select({
+        interactionId: interactions.id,
+        tagId: tags.id,
+        tagName: tags.name,
+      })
       .from(interactions)
       .leftJoin(tags, eq(tags.id, interactions.tagId))
-      .where(eq(interactions.userId, users[0].id))
+      .where(eq(interactions.userId, userId))
       .execute();
 
-    const userTags = userInteractions.map((interaction) => interaction.tags);
+    const userTagIds = userInteractions
+      .filter((interaction) => interaction.tagId !== null)
+      .map((interaction) => interaction.tagId);
 
-    const distinctUserTagIds = [
-  ...new Set(
-    userTags
-      .filter((tag): tag is NonNullable<typeof tag> => tag !== null)
-      .map((tag) => tag.id)
-  ),
-];
-
+    // If user has no tag interactions, return empty result
+    if (userTagIds.length === 0) {
+      return { question: [], isNext: false };
+    }
     const baseWhereClause = and(
-      inArray(questionTags.tagId, distinctUserTagIds),
-      not(eq(questions.authorId, users[0].id))
+      inArray(questionTags.tagId, userTagIds.filter(id => id !== null) as string[]),
+      not(eq(questions.authorId, userId))
     );
 
     const searchWhereClause = searchQuery
@@ -395,13 +461,23 @@ export async function getRecommendedQuestions(params: RecommendedParams) {
       : sql`true`;
 
     const query = db
-      .select()
+      .select({
+        id: questions.id,
+        title: questions.title,
+        content: questions.content,
+        createdAt: questions.createdAt,
+        views: questions.views,
+        upvotes: questions.upvotes,
+        downvotes: questions.downvotes,
+      })
       .from(questions)
+      .leftJoin(questionTags, eq(questionTags.questionId, questions.id))
       .where(and(baseWhereClause, searchWhereClause));
 
     const totalQuestions = await db
       .select({ count: sql<number>`count(*)` })
       .from(questions)
+      .leftJoin(questionTags, eq(questionTags.questionId, questions.id))
       .where(and(baseWhereClause, searchWhereClause))
       .execute();
 
@@ -418,3 +494,9 @@ export async function getRecommendedQuestions(params: RecommendedParams) {
     throw error;
   }
 }
+
+
+
+
+
+

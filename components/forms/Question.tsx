@@ -1,8 +1,6 @@
 /* eslint-disable tailwindcss/no-custom-classname */
 "use client";
-import { useTheme } from "@/context/themeProvider";
-import React, { useRef, useState } from "react";
-import { Editor } from "@tinymce/tinymce-react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -22,6 +20,9 @@ import { Badge } from "../ui/badge";
 import Image from "next/image";
 import { createQuestion, updateQuestion } from "@/lib/actions/question.action";
 import { useRouter, usePathname } from "next/navigation";
+import { uploadFiles } from "@/lib/uploadthing";
+import type EditorJS from '@editorjs/editorjs';
+import { useToast } from "../ui/use-toast";
 
 interface QuestionProps {
   type?: string;
@@ -30,10 +31,11 @@ interface QuestionProps {
 }
 
 const Question = ({ type, userId, questionDetails }: QuestionProps) => {
-  const editorRef = useRef(null);
+  const editorRef = useRef<EditorJS | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const { toast } = useToast();
   // Check if questionDetails is not empty or undefined before parsing
   const parsedQuestionDetails = questionDetails
     ? JSON.parse(questionDetails)
@@ -56,16 +58,17 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
 
   // 2. Define a submit handler.
   async function onSubmit(values: z.infer<typeof QuestionsSchema>) {
-      console.log("Form submitted with values: ", values);
-const result = await form.trigger(); // This forces validation
-console.log("Validation result: ", result);
-    setIsSubmitting(true);
     try {
+      setIsSubmitting(true);
+
+      // Get the content from editor
+      const blocks = await editorRef.current?.save();
+
       if (type === "Edit") {
         await updateQuestion({
           questionId: parsedQuestionDetails._id,
           title: values.title,
-          content: values.explanation,
+          content: JSON.stringify(blocks),
           path: pathname,
         });
 
@@ -73,16 +76,24 @@ console.log("Validation result: ", result);
       } else {
         await createQuestion({
           title: values.title,
-          content: values.explanation,
+          content: JSON.stringify(blocks),
           tags: values.tags,
           author: userId,
           path: pathname,
         });
         router.push("/");
       }
-    } catch (error) {
-          console.error("Error creating/updating question: ", error);
 
+      toast({
+        title: `Question ${type === "Edit" ? "Updated" : "Created"} Successfully`,
+        variant: "default",
+      });
+    } catch (error) {
+      console.log(error);
+      toast({
+        title: "Something went wrong",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -124,7 +135,104 @@ console.log("Validation result: ", result);
     form.setValue("tags", newTags);
   };
 
-  const { mode } = useTheme();
+
+  const initializeEditor = useCallback(async () => {
+    const EditorJS = (await import("@editorjs/editorjs")).default;
+    const Header = (await import("@editorjs/header")).default;
+    const Embed = (await import("@editorjs/embed")).default;
+    const Table = (await import("@editorjs/table")).default;
+    const List = (await import("@editorjs/list")).default;
+    const Code = (await import("@editorjs/code")).default;
+    const LinkTool = (await import("@editorjs/link")).default;
+    const InlineCode = (await import("@editorjs/inline-code")).default;
+    const ImageTool = (await import("@editorjs/image")).default;
+
+    if (!editorRef.current) {
+      const editor = new EditorJS({
+        holder: "editor",
+        onReady() {
+          editorRef.current = editor;
+        },
+        placeholder: "Type here to write your post...",
+        inlineToolbar: true,
+        data: parsedQuestionDetails.content ? JSON.parse(parsedQuestionDetails.content) : { blocks: [] },
+        tools: {
+          header: Header,
+          linkTool: {
+            class: LinkTool,
+            config: {
+              endpoint: "/api/link",
+            },
+          },
+          image: {
+            class: ImageTool,
+            config: {
+              uploader: {
+                async uploadByFile(file: File) {
+                  try {
+                    // Add file size check
+                    const maxSize = 5 * 1024 * 1024; // 5MB
+                    if (file.size > maxSize) {
+                      throw new Error('File size too large (max 5MB)');
+                    }
+
+                    const [res] = await uploadFiles("imageUploader", { files: [file] });
+
+                    if (!res?.url) {
+                      throw new Error('Upload failed');
+                    }
+
+                    return {
+                      success: 1,
+                      file: {
+                        url: res.url,
+                      },
+                    };
+                  } catch (error) {
+                    console.error('Image upload error:', error);
+                    return {
+                      success: 0,
+                      error: 'Upload failed. Please try another image.'
+                    };
+                  }
+                },
+              },
+            },
+          },
+          list: List,
+          code: Code,
+          inlineCode: InlineCode,
+          table: Table,
+          embed: Embed,
+        },
+      });
+    }
+  }, [parsedQuestionDetails]);
+
+  const [isMounted, setIsMounted] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsMounted(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    const init = async () => {
+      await initializeEditor();
+    };
+
+    if (isMounted) {
+      init();
+
+      return () => {
+        if (editorRef.current) {
+          editorRef.current.destroy();
+          editorRef.current = null;
+        }
+      };
+    }
+  }, [isMounted, initializeEditor]);
 
   return (
     <div>
@@ -167,48 +275,13 @@ console.log("Validation result: ", result);
                   <span className="text-primary-main">*</span>
                 </FormLabel>
                 <FormControl className="mt-3.5">
-                  <Editor
-                    key={mode}
-                    apiKey={process.env.NEXT_PUBLIC_TINY_EDITOR_API_KEY}
-                    onBlur={field.onBlur}
-                    onEditorChange={(content) => field.onChange(content)}
-                    // @ts-ignore
-                    onInit={(evt, editor) => (editorRef.current = editor)}
-                    initialValue={parsedQuestionDetails.content || ""}
-                    init={{
-                      skin: mode === "light" ? "oxide" : "oxide-dark",
-                      content_css: mode === "light" ? "default" : "dark",
-                      height: 350,
-                      menubar: false,
-                      plugins: [
-                        "advlist",
-                        "autolink",
-                        "lists",
-                        "link",
-                        "image",
-                        "charmap",
-                        "preview",
-                        "anchor",
-                        "searchreplace",
-                        "visualblocks",
-                        "codesample",
-                        "fullscreen",
-                        "insertdatetime",
-                        "media",
-                        "table",
-                        "link",
-                        "quickbars", // Add the quickbars plugin here
-                      ],
-                      toolbar:
-                        "undo redo | " +
-                        "codesample | bold italic forecolor | alignleft aligncenter | " +
-                        "alignright alignjustify | bullist numlist link | quickbars", // Add quickbars to the toolbar
-                      content_style:
-                        "body { font-family:Inter; font-size:16px }",
-                    }}
-                  />
+                  <div className="min-h-[500px] w-full rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+                    <div className="prose prose-stone dark:prose-invert">
+                      <div id="editor" className="min-h-[500px]" />
+                    </div>
+                  </div>
                 </FormControl>
-                <FormDescription className="body-regular text-invert-3 mt-2.5 ">
+                <FormDescription className="body-regular text-invert-3 mt-2.5">
                   Describe your question here, but remember, the more specific
                   you are, the better the answer you&apos;ll get. Imagine
                   you&apos;re asking a friend for help!

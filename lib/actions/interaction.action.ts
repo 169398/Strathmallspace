@@ -17,7 +17,7 @@ export async function viewQuestion(params: ViewQuestionParams) {
       .limit(1);
 
     if (!question.length) {
-      throw new Error("Question not found");
+      return { success: false, message: "Question not found" };
     }
 
     // 2. Increment the views count for the question
@@ -53,6 +53,8 @@ export async function viewQuestion(params: ViewQuestionParams) {
         
       });
     }
+    
+    return { success: true, message: "View recorded successfully" };
   } catch (error) {
     console.log(error);
     throw error;

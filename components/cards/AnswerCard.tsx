@@ -1,3 +1,5 @@
+'use client';
+
 import Link from "next/link";
 import Metric from "../shared/Metric";
 import { formatNumber, getTimeStamps } from "@/lib/utils";
@@ -9,6 +11,7 @@ interface Props {
   question: {
     id: string;
     title: string;
+    tags: string[];
   };
   author: {
     id: string;

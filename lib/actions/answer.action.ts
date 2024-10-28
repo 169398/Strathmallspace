@@ -18,22 +18,25 @@ export async function createAnswer(params: CreateAnswerParams) {
   try {
     const { content, author, question, path } = params;
 
+    // Parse the content if it's a string
+    const contentData = typeof content === 'string' ? JSON.parse(content) : content;
+
     // Insert new answer
     const newAnswer = await db
       .insert(answers)
       .values({
-        content,
+        content: contentData,  // Store the entire Editor.js JSON structure
         authorId: author,
         questionId: question,
-     })
+      })
       .returning()
       .execute();
 
-    // Update question's answer array
+    // Update question's answer count
     await db
       .update(questions)
       .set({
-        answersCount: sql`array_append(answers, ${newAnswer[0].id})`, 
+        answersCount: sql`${questions.answersCount} + 1`, // Simply increment the counter
       })
       .where(eq(questions.id, question.toString()))
       .returning()
@@ -144,23 +147,27 @@ export async function upvoteAnswer(params: AnswerVoteParams) {
     if (hasUpvoted) {
       await db
         .update(answers)
-        .set({ upvotes: sql`array_remove(upvotes, ${userId})` })
+        .set({ 
+          upvotes: sql`array_remove(${answers.upvotes}::uuid[], ${userId}::uuid)` 
+        })
         .where(eq(answers.id, answerId))
         .execute();
     } else if (hasDownvoted) {
       await db
         .update(answers)
         .set({
-          downvotes: sql`array_remove(downvotes, ${userId})`,
-          upvotes: sql`array_append(upvotes, ${userId})`,
+          downvotes: sql`array_remove(${answers.downvotes}::uuid[], ${userId}::uuid)`,
+          upvotes: sql`array_append(${answers.upvotes}::uuid[], ${userId}::uuid)`,
         })
         .where(eq(answers.id, answerId))
         .execute();
     } else {
       await db
         .update(answers)
-        .set({ upvotes: sql`array_append(upvotes, ${userId})` })
-        .where(eq(answers.id,answerId))
+        .set({ 
+          upvotes: sql`array_append(${answers.upvotes}::uuid[], ${userId}::uuid)` 
+        })
+        .where(eq(answers.id, answerId))
         .execute();
     }
 
@@ -195,26 +202,29 @@ export async function downvoteAnswer(params: AnswerVoteParams) {
   try {
     const { answerId, userId, hasDownvoted, hasUpvoted, path } = params;
 
-    // Update votes based on the current status
     if (hasDownvoted) {
       await db
         .update(answers)
-        .set({ downvotes: sql`array_remove(downvotes, ${userId})` })
+        .set({ 
+          downvotes: sql`array_remove(${answers.downvotes}::uuid[], ${userId}::uuid)` 
+        })
         .where(eq(answers.id, answerId))
         .execute();
     } else if (hasUpvoted) {
       await db
         .update(answers)
         .set({
-          upvotes: sql`array_remove(upvotes, ${userId})`,
-          downvotes: sql`array_append(downvotes, ${userId})`,
+          upvotes: sql`array_remove(${answers.upvotes}::uuid[], ${userId}::uuid)`,
+          downvotes: sql`array_append(${answers.downvotes}::uuid[], ${userId}::uuid)`,
         })
         .where(eq(answers.id, answerId))
         .execute();
     } else {
       await db
         .update(answers)
-        .set({ downvotes: sql`array_append(downvotes, ${userId})` })
+        .set({ 
+          downvotes: sql`array_append(${answers.downvotes}::uuid[], ${userId}::uuid)` 
+        })
         .where(eq(answers.id, answerId))
         .execute();
     }

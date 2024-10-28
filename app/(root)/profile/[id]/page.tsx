@@ -100,14 +100,14 @@ const Profile = async ({ params, searchParams }: any) => {
           <TabsContent value="top-posts">
             <QuestionTab
               searchParams={searchParams}
-              userId={userInfo.user.id.toString()}
+              userId={userInfo.user.id}
               userSessionId={userSessionId}
             />
           </TabsContent>
           <TabsContent value="answers">
             <AnswerTab
               searchParams={searchParams}
-              userId={userInfo.user.id.toString()}
+              userId={userInfo.user.id}
               userSessionId={userSessionId}
             />
           </TabsContent>

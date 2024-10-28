@@ -18,7 +18,7 @@ interface QuestionCardProps {
   };
   upvotes: { id: string }[];
   views: number;
-  answers: { id: string }[];
+  answers: { id: string }[] | number; // Modified to accept both array and number
   createdAt: Date;
 }
 
@@ -32,16 +32,21 @@ const QuestionCard = async ({
   answers = [],
   createdAt,
 }: QuestionCardProps) => {
-  const session = await auth();
+   
 
+  const session = await auth();
   const showActionButton = session?.user?.id === author.id;
+
+  // Ensure createdAt is properly parsed to a Date object
+  const parsedDate = createdAt ? new Date(createdAt) : new Date();
+
 
   return (
     <div className="card-wrapper rounded-[10px] p-9 sm:px-11">
       <div className="flex flex-col-reverse items-start justify-between gap-5 sm:flex-row">
         <div>
           <span className="subtle-regular text-invert line-clamp-1 flex sm:hidden">
-            {getTimeStamps(new Date(createdAt))}
+            {getTimeStamps(parsedDate)}
           </span>
           <Link href={`/question/${id}`}>
             <h3 className="sm:h3-semibold base-semibold text-invert line-clamp-1 flex-1">
@@ -66,13 +71,13 @@ const QuestionCard = async ({
 
       <div className="flex-between mt-6 w-full flex-wrap gap-3">
         <Metric
-          imgUrl={author.picture}
-          alt="avatar"
-          title={` - asked ${getTimeStamps(createdAt)}`}
+          imgUrl={author?.picture || "/assets/icons/user.svg"} 
+          alt="user avatar"
+          title={` - asked ${getTimeStamps(parsedDate)}`}
           textStyles="body-medium card-text-invert-secondary"
           href={`/profile/${author.id}`}
           isAuthor
-          value={author.name}
+          value={author?.name || "Anonymous"}
         />
 
         <div className="flex-sm:justify-start flex items-center gap-3 max-sm:flex-wrap">
@@ -88,7 +93,13 @@ const QuestionCard = async ({
             alt="message"
             title="Answers"
             textStyles="small-medium card-text-invert-secondary"
-            value={answers.length === 0 ? "0" : formatNumber(answers.length)}
+            value={
+              Array.isArray(answers) 
+                ? formatNumber(answers.length)
+                : typeof answers === 'number'
+                  ? formatNumber(answers)
+                  : '0'
+            }
             href={`/question/${id}`}
           />
           <Metric

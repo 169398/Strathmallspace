@@ -1,9 +1,11 @@
 'use client';
 
-import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-
+import { useRouter, usePathname } from 'next/navigation';
+import { useState } from 'react';
+import { updateUser } from '@/lib/actions/user.action';
+import { ProfileSchema } from '@/lib/validation';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -15,73 +17,66 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '../ui/textarea';
-import { useState } from 'react';
-import { ProfileSchema } from '@/lib/validation';
-import { usePathname, useRouter } from 'next/navigation';
-import { updateUser } from '@/lib/actions/user.action';
-import Loading from '../shared/Loading';
+import { z } from 'zod';
+import { useToast } from '../ui/use-toast';
 
 interface Props {
   userId: string;
-  user: string;
+  user: any;
 }
-
+const toast = useToast();
 const Profile = ({ userId, user }: Props) => {
-  const router = useRouter();
-  const parsedUser = JSON.parse(user);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
   const pathname = usePathname();
 
-  // 1. Define your form.
-  const form = useForm<z.infer<typeof ProfileSchema>>({
+  const form = useForm({
     resolver: zodResolver(ProfileSchema),
     defaultValues: {
-      name: parsedUser.name || '',
-      username: parsedUser.username || '',
-      portfolioWebsite: parsedUser.portfolioWebsite || '',
-      location: parsedUser.location || '',
-      bio: parsedUser.bio || '',
+      name: user?.name || '',
+      username: user?.username || '',
+      portfolioWebsite: user?.portfolioWebsite || '',
+      location: user?.location || '',
+      bio: user?.bio || '',
     },
   });
 
-  // 2. Define a submit handler.
- async function onSubmit(values: z.infer<typeof ProfileSchema>) {
-   setIsSubmitting(true);
-   console.log("Form submitted with values:", values); // Check if form is submitted
-
-   try {
-     await updateUser({
-       userId,
-       updateData: {
-         name: values.name,
-         username: values.username,
-         portfolioWebsite: values.portfolioWebsite,
-         location: values.location,
-         bio: values.bio,
-       },
+  async function onSubmit(values: z.infer<typeof ProfileSchema>) {
+    setIsSubmitting(true);
+    try {
+      const response = await updateUser({
+        userId,
+        updateData: {
+          name: values.name,
+          username: values.username,
+          portfolioWebsite: values.portfolioWebsite || '',
+          location: values.location || '',
+          bio: values.bio || '',
+        },
         path: pathname,
-     });
-     console.log("User update request sent"); // Check if updateUser is called
-     router.back();
-   } catch (error) {
-     console.error("Error updating user:", error);
-   } finally {
-     setIsSubmitting(false);
-   }
- }
+      });
+      if (response.success) {
+        toast.toast({
+          title: "Success", 
+          description: response.message,
+        });
+        router.push(`/profile/${userId}`);
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error) {
+      toast.toast({
+        title: "Error",
+        description: (error as Error).message || "Something went wrong",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <Form {...form}>
-      {
-        isSubmitting && (
-          <Loading title="Updating..."/>
-        )
-
-      }
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="mt-9 flex w-full flex-col gap-9"
-      >
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <FormField
           control={form.control}
           name="username"
@@ -182,7 +177,7 @@ const Profile = ({ userId, user }: Props) => {
             className="primary-gradient w-fit text-white"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Saving' : 'Save'}
+            {isSubmitting ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>
       </form>
