@@ -53,7 +53,7 @@ export default async function Home({ searchParams }: any) {
       <div className="flex-between gap-4 ">
         <h1 className="sm:h1-bold h2-bold text-invert w-full">All Questions</h1>
         <Link href="/ask-question" className="flex justify-end max-sm:w-full">
-          <Button className="primary-gradient max-h-[40px] px-4 !text-grey-100 sm:min-h-[46px] sm:px-4 sm:py-3">
+          <Button className="primary-gradient !text-grey-100 max-h-[40px] px-4 sm:min-h-[46px] sm:px-4 sm:py-3">
             Ask a Question
           </Button>
         </Link>
@@ -79,8 +79,8 @@ export default async function Home({ searchParams }: any) {
         {result.question?.length > 0 ? (
           result.question.map((question: any) => (
             <QuestionCard
-              key={question._id}
-              id={question._id}
+              key={question.id}
+              id={question.id}
               title={question.title}
               tags={question.tags}
               author={question.author}

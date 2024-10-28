@@ -1,6 +1,6 @@
 {
-  "id": "6fc75d95-8137-4fbd-a453-c21959becda4",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "976672b7-9d03-4bd1-b161-a9c67c14adf6",
+  "prevId": "1463ee59-f756-46ab-a60a-fc8191e75f3c",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -133,17 +133,15 @@
         },
         "upvotes": {
           "name": "upvotes",
-          "type": "integer[]",
+          "type": "uuid[]",
           "primaryKey": false,
-          "notNull": false,
-          "default": "'{}'"
+          "notNull": false
         },
         "downvotes": {
           "name": "downvotes",
-          "type": "integer[]",
+          "type": "uuid[]",
           "primaryKey": false,
-          "notNull": false,
-          "default": "'{}'"
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -380,10 +378,10 @@
         },
         "upvotes": {
           "name": "upvotes",
-          "type": "integer[]",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
-          "default": "'{}'"
+          "default": 0
         },
         "downvotes": {
           "name": "downvotes",
@@ -411,6 +409,13 @@
           "primaryKey": false,
           "notNull": false,
           "default": "now()"
+        },
+        "tags": {
+          "name": "tags",
+          "type": "uuid[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'"
         }
       },
       "indexes": {},

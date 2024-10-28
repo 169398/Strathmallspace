@@ -9,7 +9,7 @@ interface Props {
   userSessionId?: string|null;
 }
 
-const AnswerTab = async ({ searchParams, userId,  }: Props) => {
+const AnswerTab = async ({ searchParams, userId }: Props) => {
   const result = await getUserAnswers({
     userId,
     page: searchParams.page ? +searchParams.page : 1,
@@ -24,11 +24,12 @@ const AnswerTab = async ({ searchParams, userId,  }: Props) => {
             id={item.id.toString()}
             question={{
               id: item.question?.id?.toString() ?? '0',
-              title: item.question?.title ?? 'No title available'
+              title: item.question?.title ?? 'No title available',
+              tags: item.question?.tags ?? [] // Add tags from the question
             }} 
             author={{
               id: item.author?.id?.toString() ?? '0',
-              name: item.author?.name ?? 'Anonymous',
+              name: item.author?.name ?? '',
               picture: item.author?.picture ?? ''
             }} 
             upvotes={item.upvotes?.length ?? 0}

@@ -14,7 +14,7 @@ const page = async ({ params }: any) => {
   const userId = session?.user?.id;
   if (!userId) return null;
 
-  const mongoUser = await getUserById(userId);
+  const User = await getUserById(userId);
   const result = await getQuestionById({ questionId: params.id });
   return (
     <div>
@@ -22,7 +22,7 @@ const page = async ({ params }: any) => {
       <div className="mt-9">
         <Question
           type="Edit"
-          userId={mongoUser.id.toString()}
+          userId={User.id.toString()}
           questionDetails={JSON.stringify(result)}
         />
       </div>

@@ -4,12 +4,12 @@ import { questions, savedQuestions, user, answers } from "@/db/schema";
 import {
   CreateUserParams,
   GetAllUsersParams,
-  UpdateUserParams,
   ToggleSaveQuestionParams,
   GetSavedQuestionsParams,
   GetUserInfoParams,
   GetUserStatsParams,
-} from "./shared.types";
+  UpdateUserParams,
+} from "./shared.types.d";
 import { revalidatePath } from "next/cache";
 import { eq, or, desc, asc, and, sql } from "drizzle-orm";
 import { assignBadges } from "../utils";
@@ -60,34 +60,38 @@ export async function updateUser(params: UpdateUserParams) {
   const { userId, updateData, path } = params;
 
   try {
-    // Ensure updateData is not empty
-    if (!updateData || Object.keys(updateData).length === 0) {
-      throw new Error("No update data provided.");
-    }
+    // Clean the update data by removing empty strings
+    const cleanedUpdateData = Object.fromEntries(
+      Object.entries(updateData).filter(([_, value]) => value !== '')
+    );
 
-    // Perform the update and check the result
-    const result = await db
+    // Perform the update
+    const updatedUser = await db
       .update(user)
-      .set(updateData)
+      .set(cleanedUpdateData)
       .where(eq(user.id, userId))
-      .returning(); // Optionally return updated rows
+      .returning();
 
-    // Log the result to check if any rows were updated
-    if (result.length === 0) {
-      console.warn(`No user found with ID: ${userId}, or no data was updated.`);
-    } else {
-      console.log(`User with ID: ${userId} successfully updated.`);
+    if (!updatedUser.length) {
+      throw new Error("Failed to update user");
     }
 
-    // Optionally revalidate the path if necessary
-     if (path) {
-       revalidatePath(path);
+    if (path) {
+      revalidatePath(path);
     }
 
-    return result; // Return updated user data or affected row info
+    return {
+      success: true,
+      message: "Profile updated successfully",
+      user: updatedUser[0],
+    };
+
   } catch (error) {
-    console.error(`Failed to update user with ID: ${userId}:`, error);
-    throw error;
+    console.error("Error updating user:", error);
+    return {
+      success: false,
+      message: "Failed to update profile",
+    };
   }
 }
 
@@ -362,7 +366,7 @@ export async function getUserAnswers(params: GetUserStatsParams) {
 
     const totalAnswers = totalAnswersResult[0]?.count ?? 0;
 
-    // Fetch answers with related question and author
+    // Updated query to include tags
     const answersList = await db
       .select({
         id: answers.id,
@@ -373,6 +377,7 @@ export async function getUserAnswers(params: GetUserStatsParams) {
         question: {
           id: questions.id,
           title: questions.title,
+          tags: questions.tags, // Added tags here
         },
         author: {
           id: user.id,
@@ -388,7 +393,6 @@ export async function getUserAnswers(params: GetUserStatsParams) {
       .limit(pageSize)
       .execute();
 
-    // Check if there are more answers beyond the current page
     const isNextAnswer = totalAnswers > page * pageSize;
 
     return { totalAnswers, answers: answersList, isNextAnswer };
@@ -407,6 +411,8 @@ export const SignInWithGoogle = async () => {
 export const SignOut = async () => {
   await signOut();
 };
+
+
 
 
 

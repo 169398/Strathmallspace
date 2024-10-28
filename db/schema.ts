@@ -89,21 +89,28 @@ export const tags = pgTable("tags", {
   createdAt: timestamp("created_at").defaultNow(),
   questionCount: integer("question_count").default(0),
   questions: integer("questions").array().default([]),
+  views: integer("views").default(0),
+  answers: integer("answers").default(0),
+  author: uuid("author").references(() => user.id),
+  upvotes: uuid('upvotes').array(),
+  downvotes: uuid('downvotes').array(),
 });
 
-// Simplified Questions Table
+// Questions Table
 export const questions = pgTable("questions", {
-  id: uuid("id").primaryKey().defaultRandom(), // Unique identifier
-  title: text("title").notNull(), // Question title
-  content: text("content").notNull(), // Question content
-  views: integer("views").default(0), // View count
-  upvotes: integer("upvotes").array().default([]), // Change upvotes to integer[] array
-  downvotes: integer("downvotes").array().default([]), // Simplified downvotes count
-  answersCount: integer("answers_count").default(0), // Simplified answers count
-  authorId: uuid("author_id") // Author reference
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  views: integer("views").default(0),
+  upvotes: uuid("upvotes").array(),
+  downvotes: uuid("downvotes").array(),
+  answersCount: integer("answers_count").default(0),
+  authorId: uuid("author_id")
     .references(() => user.id)
     .notNull(),
   createdAt: timestamp("created_at").defaultNow(),
+  tags: uuid("tags").array().default([]),
+  answers: uuid("answers").array().default([]),
 });
 
 // Associative table for tags to enable many-to-many relationship
@@ -125,9 +132,10 @@ export const answers = pgTable("answers", {
     .references(() => questions.id)
     .notNull(),
   content: text("content").notNull(),
-  upvotes: integer("upvotes").array().default([]),
-  downvotes: integer("downvotes").array().default([]),
+  upvotes: uuid("upvotes").array(),
+  downvotes: uuid("downvotes").array(),
   createdAt: timestamp("created_at").defaultNow(),
+  
 });
 
 // Interactions Table

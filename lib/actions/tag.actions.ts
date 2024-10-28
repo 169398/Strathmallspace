@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 "use server";
 
-import { tags, questions, interactions, questionTags } from "@/db/schema";
+import { tags, questions, interactions, questionTags, user } from "@/db/schema";
 import { eq, inArray, like, desc, asc, sql } from "drizzle-orm";
 import {
   GetAllTagsParams,
@@ -123,21 +123,42 @@ export async function getQuestionByTagId(params: GetQuestionByTagIdParams) {
     const { tagId, page = 1, pageSize = 10, searchQuery } = params;
     const skipCount = (page - 1) * pageSize;
 
-    const query = searchQuery
-      ? db
-        .select()
-        .from(questions)
-        .where(like(questions.title, `%${searchQuery}%`))
-      : db.select().from(questions);
+    // First, get the tag name
+    const tagInfo = await db
+      .select({
+        id: tags.id,
+        name: tags.name,
+        createdAt: tags.createdAt,
+      })
+      .from(tags)
+      .where(eq(tags.id, tagId))
+      .limit(1);
 
     const tagQuestions = await db
       .select({
-        questionId: questions.id,
-        title: questions.title,
-        authorId: questions.authorId,
+        question: {
+          id: questions.id,
+          title: questions.title,
+          createdAt: questions.createdAt,
+          views: questions.views,
+          upvotes: questions.upvotes,
+          downvotes: questions.downvotes,
+          answersCount: questions.answersCount,
+        },
+        author: {
+          id: user.id,
+          name: user.name,
+          image: user.image,
+        },
+        tag: {
+          id: tags.id,
+          name: tags.name,
+        }
       })
-      .from(questions)
+      .from(questionTags)
+      .innerJoin(questions, eq(questions.id, questionTags.questionId))
       .innerJoin(tags, eq(tags.id, questionTags.tagId))
+      .innerJoin(user, eq(user.id, questions.authorId)) // Add this join
       .where(eq(questionTags.tagId, tagId))
       .offset(skipCount)
       .limit(pageSize + 1);
@@ -145,7 +166,16 @@ export async function getQuestionByTagId(params: GetQuestionByTagIdParams) {
     const isNext = tagQuestions.length > pageSize;
     const questionsList = tagQuestions.slice(0, pageSize);
 
-    return { tagTitle: tagId, questions: questionsList, isNext };
+    return { 
+      tagTitle: tagInfo[0]?.name || 'Unknown Tag',
+      tagId: tagInfo[0]?.id || tagId,
+      questions: questionsList.map(q => ({
+        ...q.question,
+        author: q.author,
+        tag: q.tag,
+      })), 
+      isNext 
+    };
   } catch (error) {
     console.error(error);
     throw error;

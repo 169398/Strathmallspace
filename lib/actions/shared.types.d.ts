@@ -76,12 +76,18 @@ export interface CreateUserParams {
 }
 
 // Updating a user
-export interface UpdateUserParams {
-  userId: string;
-  updateData: Partial<IUser>;
-  path: string;
-}
 
+export type UpdateUserParams = {
+  userId: string;
+  updateData: {
+    name?: string;
+    username?: string;
+    portfolioWebsite?: string;
+    location?: string;
+    bio?: string;
+  };
+  path: string;
+};
 // Deleting a user
 export interface DeleteUserParams {
   userId: string;

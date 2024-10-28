@@ -1,12 +1,10 @@
 /* eslint-disable tailwindcss/no-custom-classname */
-'use client';
-import { useTheme } from '@/context/themeProvider';
-import React, { useRef, useState } from 'react';
-import { Editor } from '@tinymce/tinymce-react';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { Button } from '@/components/ui/button';
+"use client";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -15,13 +13,16 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { QuestionsSchema } from '@/lib/validation';
-import { Badge } from '../ui/badge';
-import Image from 'next/image';
-import { createQuestion, updateQuestion } from '@/lib/actions/question.action';
-import { useRouter, usePathname } from 'next/navigation';
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { QuestionsSchema } from "@/lib/validation";
+import { Badge } from "../ui/badge";
+import Image from "next/image";
+import { createQuestion, updateQuestion } from "@/lib/actions/question.action";
+import { useRouter, usePathname } from "next/navigation";
+import { uploadFiles } from "@/lib/uploadthing";
+import type EditorJS from '@editorjs/editorjs';
+import { useToast } from "../ui/use-toast";
 
 interface QuestionProps {
   type?: string;
@@ -30,14 +31,15 @@ interface QuestionProps {
 }
 
 const Question = ({ type, userId, questionDetails }: QuestionProps) => {
-  const editorRef = useRef(null);
+  const editorRef = useRef<EditorJS | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const { toast } = useToast();
   // Check if questionDetails is not empty or undefined before parsing
   const parsedQuestionDetails = questionDetails
     ? JSON.parse(questionDetails)
-    : '';
+    : "";
 
   // Ensure parsedQuestionDetails is not null before accessing its properties
   const groupedTags = parsedQuestionDetails
@@ -48,22 +50,25 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
   const form = useForm<z.infer<typeof QuestionsSchema>>({
     resolver: zodResolver(QuestionsSchema),
     defaultValues: {
-      title: parsedQuestionDetails.title || '',
-      explanation: parsedQuestionDetails.content || '',
+      title: parsedQuestionDetails.title || "",
+      explanation: parsedQuestionDetails.content || "",
       tags: groupedTags || [],
     },
   });
 
   // 2. Define a submit handler.
   async function onSubmit(values: z.infer<typeof QuestionsSchema>) {
-    setIsSubmitting(true);
     try {
-      
-      if (type === 'Edit') {
+      setIsSubmitting(true);
+
+      // Get the content from editor
+      const blocks = await editorRef.current?.save();
+
+      if (type === "Edit") {
         await updateQuestion({
           questionId: parsedQuestionDetails._id,
           title: values.title,
-          content: values.explanation,
+          content: JSON.stringify(blocks),
           path: pathname,
         });
 
@@ -71,18 +76,29 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
       } else {
         await createQuestion({
           title: values.title,
-          content: values.explanation,
+          content: JSON.stringify(blocks),
           tags: values.tags,
-          author: JSON.parse(userId),
+          author: userId,
           path: pathname,
         });
-        router.push('/');
+        router.push("/");
       }
+
+      toast({
+        title: `Question ${type === "Edit" ? "Updated" : "Created"} Successfully`,
+        variant: "default",
+      });
     } catch (error) {
+      console.log(error);
+      toast({
+        title: "Something went wrong",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
   }
+  
 
   // * Define a function to handle adding tags.
 
@@ -90,23 +106,23 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
     e: React.KeyboardEvent<HTMLInputElement>,
     field: any
   ) => {
-    if (e.key === 'Enter' && field.name === 'tags') {
+    if (e.key === "Enter" && field.name === "tags") {
       e.preventDefault();
 
       const tagInput = e.target as HTMLInputElement;
       const tagValue = tagInput.value.trim();
 
-      if (tagValue !== '') {
+      if (tagValue !== "") {
         if (tagValue.length > 15) {
-          return form.setError('tags', {
-            type: 'required',
-            message: 'Tags should be less than 15 characters',
+          return form.setError("tags", {
+            type: "required",
+            message: "Tags should be less than 15 characters",
           });
         }
         if (!field.value.includes(tagValue as never)) {
-          form.setValue('tags', [...field.value, tagValue]);
-          tagInput.value = '';
-          form.clearErrors('tags');
+          form.setValue("tags", [...field.value, tagValue]);
+          tagInput.value = "";
+          form.clearErrors("tags");
         }
       } else {
         form.trigger();
@@ -116,14 +132,111 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
 
   const handleTagRemove = (tag: string, field: any) => {
     const newTags = field.value.filter((t: string) => t !== tag);
-    form.setValue('tags', newTags);
+    form.setValue("tags", newTags);
   };
 
-  const { mode } = useTheme();
+
+  const initializeEditor = useCallback(async () => {
+    const EditorJS = (await import("@editorjs/editorjs")).default;
+    const Header = (await import("@editorjs/header")).default;
+    const Embed = (await import("@editorjs/embed")).default;
+    const Table = (await import("@editorjs/table")).default;
+    const List = (await import("@editorjs/list")).default;
+    const Code = (await import("@editorjs/code")).default;
+    const LinkTool = (await import("@editorjs/link")).default;
+    const InlineCode = (await import("@editorjs/inline-code")).default;
+    const ImageTool = (await import("@editorjs/image")).default;
+
+    if (!editorRef.current) {
+      const editor = new EditorJS({
+        holder: "editor",
+        onReady() {
+          editorRef.current = editor;
+        },
+        placeholder: "Type here to write your post...",
+        inlineToolbar: true,
+        data: parsedQuestionDetails.content ? JSON.parse(parsedQuestionDetails.content) : { blocks: [] },
+        tools: {
+          header: Header,
+          linkTool: {
+            class: LinkTool,
+            config: {
+              endpoint: "/api/link",
+            },
+          },
+          image: {
+            class: ImageTool,
+            config: {
+              uploader: {
+                async uploadByFile(file: File) {
+                  try {
+                    // Add file size check
+                    const maxSize = 5 * 1024 * 1024; // 5MB
+                    if (file.size > maxSize) {
+                      throw new Error('File size too large (max 5MB)');
+                    }
+
+                    const [res] = await uploadFiles("imageUploader", { files: [file] });
+
+                    if (!res?.url) {
+                      throw new Error('Upload failed');
+                    }
+
+                    return {
+                      success: 1,
+                      file: {
+                        url: res.url,
+                      },
+                    };
+                  } catch (error) {
+                    console.error('Image upload error:', error);
+                    return {
+                      success: 0,
+                      error: 'Upload failed. Please try another image.'
+                    };
+                  }
+                },
+              },
+            },
+          },
+          list: List,
+          code: Code,
+          inlineCode: InlineCode,
+          table: Table,
+          embed: Embed,
+        },
+      });
+    }
+  }, [parsedQuestionDetails]);
+
+  const [isMounted, setIsMounted] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsMounted(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    const init = async () => {
+      await initializeEditor();
+    };
+
+    if (isMounted) {
+      init();
+
+      return () => {
+        if (editorRef.current) {
+          editorRef.current.destroy();
+          editorRef.current = null;
+        }
+      };
+    }
+  }, [isMounted, initializeEditor]);
 
   return (
     <div>
-      {' '}
+      {" "}
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}
@@ -158,52 +271,17 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
             render={({ field }) => (
               <FormItem className="flex w-full flex-col gap-3">
                 <FormLabel className="paragraph-semibold text-invert">
-                  Detailed explanation of your problem{' '}
+                  Detailed explanation of your problem{" "}
                   <span className="text-primary-main">*</span>
                 </FormLabel>
                 <FormControl className="mt-3.5">
-                  <Editor
-                    key={mode}
-                    apiKey={process.env.NEXT_PUBLIC_TINY_EDITOR_API_KEY}
-                    onBlur={field.onBlur}
-                    onEditorChange={(content) => field.onChange(content)}
-                    // @ts-ignore
-                    onInit={(evt, editor) => (editorRef.current = editor)}
-                    initialValue={parsedQuestionDetails.content || ''}
-                    init={{
-                      skin: mode === 'light' ? 'oxide' : 'oxide-dark',
-                      content_css: mode === 'light' ? 'default' : 'dark',
-                      height: 350,
-                      menubar: false,
-                      plugins: [
-                        'advlist',
-                        'autolink',
-                        'lists',
-                        'link',
-                        'image',
-                        'charmap',
-                        'preview',
-                        'anchor',
-                        'searchreplace',
-                        'visualblocks',
-                        'codesample',
-                        'fullscreen',
-                        'insertdatetime',
-                        'media',
-                        'table',
-                        'link',
-                        'quickbars', // Add the quickbars plugin here
-                      ],
-                      toolbar:
-                        'undo redo | ' +
-                        'codesample | bold italic forecolor | alignleft aligncenter | ' +
-                        'alignright alignjustify | bullist numlist link | quickbars', // Add quickbars to the toolbar
-                      content_style:
-                        'body { font-family:Inter; font-size:16px }',
-                    }}
-                  />
+                  <div className="min-h-[500px] w-full rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+                    <div className="prose prose-stone dark:prose-invert">
+                      <div id="editor" className="min-h-[500px]" />
+                    </div>
+                  </div>
                 </FormControl>
-                <FormDescription className="body-regular text-invert-3 mt-2.5 ">
+                <FormDescription className="body-regular text-invert-3 mt-2.5">
                   Describe your question here, but remember, the more specific
                   you are, the better the answer you&apos;ll get. Imagine
                   you&apos;re asking a friend for help!
@@ -224,7 +302,7 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
                 <FormControl className="mt-3.5">
                   <>
                     <Input
-                      disabled={type === 'Edit'}
+                      disabled={type === "Edit"}
                       className="no-focus paragraph-regular input_background text-invert-secondary min-h-[56px] border"
                       placeholder="Add Tags..."
                       onKeyDown={(e) => handleInputKeyDown(e, field)}
@@ -237,13 +315,13 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
                             className="subtle-medium question-tag-bg flex cursor-pointer
                             items-center  justify-center gap-2 rounded-md  px-3 py-2 uppercase duration-300 ease-in-out hover:border-red-500"
                             onClick={() =>
-                              type !== 'Edit'
+                              type !== "Edit"
                                 ? handleTagRemove(tag, field)
                                 : () => {}
                             }
                           >
                             {tag}
-                            {type !== 'Edit' && (
+                            {type !== "Edit" && (
                               <Image
                                 src="/assets/icons/close.svg"
                                 alt="Remove"
@@ -268,13 +346,15 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
           />
           <Button
             type="submit"
-            className={`primary-gradient px-3 py-4 text-white ${isSubmitting && 'cursor-progress'}`}
+            className={`primary-gradient px-3 py-4 text-white ${
+              isSubmitting && "cursor-progress"
+            }`}
             disabled={isSubmitting}
           >
             {isSubmitting ? (
-              <>{type === 'Edit' ? 'Updating...' : 'Posting...'}</>
+              <>{type === "Edit" ? "Updating..." : "Posting..."}</>
             ) : (
-              <>{type === 'Edit' ? 'Edit Question' : 'Ask Question'}</>
+              <>{type === "Edit" ? "Edit Question" : "Ask Question"}</>
             )}
           </Button>
         </form>

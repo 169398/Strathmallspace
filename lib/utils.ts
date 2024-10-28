@@ -11,11 +11,19 @@ export function cn(...inputs: ClassValue[]) {
 
 
 export const getTimeStamps = (createdAt: Date): string => {
+  if (
+    !createdAt ||
+    !(createdAt instanceof Date) ||
+    isNaN(createdAt.getTime())
+  ) {
+    return "Unknown time"; // Fallback message
+  }
+
   const currentDate = new Date();
   const elapsedTime = currentDate.getTime() - createdAt.getTime();
 
   if (elapsedTime < 60000) {
-    return 'Just Now';
+    return "Just Now";
   }
 
   const seconds = Math.floor(elapsedTime / 1000);
@@ -27,19 +35,19 @@ export const getTimeStamps = (createdAt: Date): string => {
   const years = Math.floor(days / 365);
 
   if (years > 0) {
-    return `${years} year${years > 1 ? 's' : ''} ago`;
+    return `${years} year${years > 1 ? "s" : ""} ago`;
   } else if (months > 0) {
-    return `${months} month${months > 1 ? 's' : ''} ago`;
+    return `${months} month${months > 1 ? "s" : ""} ago`;
   } else if (weeks > 0) {
-    return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
+    return `${weeks} week${weeks > 1 ? "s" : ""} ago`;
   } else if (days > 0) {
-    return `${days} day${days > 1 ? 's' : ''} ago`;
+    return `${days} day${days > 1 ? "s" : ""} ago`;
   } else if (hours > 0) {
-    return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    return `${hours} hour${hours > 1 ? "s" : ""} ago`;
   } else if (minutes > 0) {
-    return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
   } else {
-    return `${seconds} second${seconds > 1 ? 's' : ''} ago`;
+    return `${seconds} second${seconds > 1 ? "s" : ""} ago`;
   }
 };
 

@@ -14,6 +14,7 @@ interface AllAnswerProps {
   totalAnswers: number;
   page?: number;
   filter?: string;
+
 }
 
 const AllAnswers = async ({
@@ -80,9 +81,9 @@ const AllAnswers = async ({
                       itemId={JSON.stringify(answer.id)}
                       userId={JSON.stringify(userId)}
                       upvotes={answer.upvotes?.length || 0}
-                      hasUpvoted={answer.upvotes?.includes(Number(userId)) || false}
+                      hasUpvoted={answer.upvotes?.includes((userId)) || false}
                       downvotes={answer.downvotes?.length || 0}
-                      hasDownvoted={answer.downvotes?.includes(Number(userId)) ?? false}
+                      hasDownvoted={answer.downvotes?.includes(userId) ?? false}
                     />
                   </div>
                 </div>

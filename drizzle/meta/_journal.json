@@ -5,8 +5,50 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1726816996025,
-      "tag": "0000_thin_anthem",
+      "when": 1728919648157,
+      "tag": "0000_colossal_inertia",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1730111280940,
+      "tag": "0001_perfect_swordsman",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1730112273491,
+      "tag": "0002_elite_mystique",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1730114328689,
+      "tag": "0003_huge_virginia_dare",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1730116229234,
+      "tag": "0004_vengeful_nekra",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1730117730344,
+      "tag": "0005_huge_supernaut",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1730120067435,
+      "tag": "0006_reflective_brood",
       "breakpoints": true
     }
   ]
