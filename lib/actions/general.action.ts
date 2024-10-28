@@ -1,6 +1,6 @@
 import { questions, user, answers, tags } from "@/db/schema";
 import { ilike } from "drizzle-orm";
-import { SearchParams } from "./shared.types";
+import { SearchParams } from "./shared.types.d";
 import db from "@/db/drizzle";
 
 export async function globalSearch(params: SearchParams) {

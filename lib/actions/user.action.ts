@@ -8,12 +8,12 @@ import {
   GetSavedQuestionsParams,
   GetUserInfoParams,
   GetUserStatsParams,
+  UpdateUserParams,
 } from "./shared.types.d";
 import { revalidatePath } from "next/cache";
 import { eq, or, desc, asc, and, sql } from "drizzle-orm";
 import { assignBadges } from "../utils";
 import { signIn, signOut } from "../auth";
-import { UpdateUserParams } from "./shared.types";
 
 
 export async function getUserById(userId: string) {

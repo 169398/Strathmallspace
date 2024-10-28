@@ -6,7 +6,7 @@ import {
   CreateAnswerParams,
   DeleteAnswerParams,
   GetAnswersParams,
-} from "./shared.types";
+} from "./shared.types.d";
 import { revalidatePath } from "next/cache";
 import { eq, sql} from "drizzle-orm";
 import db from "@/db/drizzle";

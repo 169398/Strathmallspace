@@ -24,11 +24,12 @@ interface Props {
   userId: string;
   user: any;
 }
-const toast = useToast();
+
 const Profile = ({ userId, user }: Props) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const toast = useToast();
 
   const form = useForm({
     resolver: zodResolver(ProfileSchema),
