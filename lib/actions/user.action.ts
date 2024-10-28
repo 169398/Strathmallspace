@@ -8,7 +8,7 @@ import {
   GetSavedQuestionsParams,
   GetUserInfoParams,
   GetUserStatsParams,
-} from "./shared.types";
+} from "./shared.types.d";
 import { revalidatePath } from "next/cache";
 import { eq, or, desc, asc, and, sql } from "drizzle-orm";
 import { assignBadges } from "../utils";
