@@ -82,12 +82,20 @@ export default async function Home({ searchParams }: any) {
               key={question.id}
               id={question.id}
               title={question.title}
-              tags={question.tags}
-              author={question.author}
-              upvotes={question.upvotes}
-              views={question.views}
-              answers={question.answers}
-              createdAt={question.createdAt}
+              tags={question.tags?.map((tag: any) => ({
+                id: tag.id,
+                name: tag.name,
+              })) || []}
+              author={{
+                id: question.author.id,
+                name: question.author.name,
+                picture: question.author.image ?? "",
+                userId: question.author.id,
+              }}
+              upvotes={Array.isArray(question.upvotes) ? question.upvotes : []}
+              views={question.views ?? 0}
+              answers={question.answersCount || 0}
+              createdAt={question.createdAt ?? new Date()}
             />
           ))
         ) : (
@@ -96,7 +104,7 @@ export default async function Home({ searchParams }: any) {
             description={`${
               searchParams.f === "recommended"
                 ? "Please interact with others questions to get recommended questions tailored to you 😉"
-                : "Be the first to break the silence! 🚀 Ask a Question and kickstart the discussion. our query could be the next big thing others learn from. Get involved"
+                : "Be the first to break the silence 🚀 Ask a Question and kickstart the discussion. our query could be the next big thing others learn from. Get involved"
             }`}
             hasButton={searchParams.f !== "recommended"}
             btnText="Ask a Question"

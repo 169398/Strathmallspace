@@ -50,15 +50,25 @@ export default async function Home({ searchParams }: any) {
         {result?.question && result.question.length > 0 ? (
           result.question.map((question: any) => (
             <QuestionCard
-              key={question._id}
-              id={question._id}
+              key={question.id}
+              id={question.id}
               title={question.title}
-              tags={question.tags}
-              author={question.author}
-              upvotes={question.upvotes}
-              views={question.views}
-              answers={question.answers}
-              createdAt={question.createdAt}
+              tags={
+                question.tags?.map((tag: any) => ({
+                  id: tag.id,
+                  name: tag.name,
+                })) || []
+              }
+              author={{
+                id: question.author.id,
+                name: question.author.name,
+                picture: question.author.image ?? "",
+                userId: question.author.id,
+              }}
+              upvotes={Array.isArray(question.upvotes) ? question.upvotes : []}
+              views={question.views ?? 0}
+              answers={question.answersCount || 0}
+              createdAt={question.createdAt ?? new Date()}
             />
           ))
         ) : (

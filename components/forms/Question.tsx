@@ -16,13 +16,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { QuestionsSchema } from "@/lib/validation";
-import { Badge } from "../ui/badge";
+import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { createQuestion, updateQuestion } from "@/lib/actions/question.action";
 import { useRouter, usePathname } from "next/navigation";
 import { uploadFiles } from "@/lib/uploadthing";
 import type EditorJS from '@editorjs/editorjs';
-import { useToast } from "../ui/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 interface QuestionProps {
   type?: string;
@@ -39,20 +39,25 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
   // Check if questionDetails is not empty or undefined before parsing
   const parsedQuestionDetails = questionDetails
     ? JSON.parse(questionDetails)
-    : "";
+    : null;
 
-  // Ensure parsedQuestionDetails is not null before accessing its properties
-  const groupedTags = parsedQuestionDetails
+  // Update the parsing logic to safely handle tags
+  const groupedTags = parsedQuestionDetails?.tags && Array.isArray(parsedQuestionDetails.tags)
     ? parsedQuestionDetails.tags.map((tag: any) => tag.name)
     : [];
 
-  // 1. Define your form.
+  // Create a modified schema for edit mode
+  const schema = type === "Edit" 
+    ? QuestionsSchema.omit({ tags: true })  // Remove tags validation for edit mode
+    : QuestionsSchema;
+
+  // Update form to use conditional schema
   const form = useForm<z.infer<typeof QuestionsSchema>>({
-    resolver: zodResolver(QuestionsSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
-      title: parsedQuestionDetails.title || "",
-      explanation: parsedQuestionDetails.content || "",
-      tags: groupedTags || [],
+      title: parsedQuestionDetails?.title || "",
+      explanation: parsedQuestionDetails?.content || "",
+      tags: groupedTags,
     },
   });
 
@@ -66,13 +71,13 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
 
       if (type === "Edit") {
         await updateQuestion({
-          questionId: parsedQuestionDetails._id,
+          questionId: parsedQuestionDetails.id,
           title: values.title,
           content: JSON.stringify(blocks),
           path: pathname,
         });
 
-        router.push(`/question/${parsedQuestionDetails._id}`);
+        router.push(`/question/${parsedQuestionDetails.id}`);
       } else {
         await createQuestion({
           title: values.title,
@@ -155,7 +160,9 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
         },
         placeholder: "Type here to write your post...",
         inlineToolbar: true,
-        data: parsedQuestionDetails.content ? JSON.parse(parsedQuestionDetails.content) : { blocks: [] },
+        data: parsedQuestionDetails?.content 
+          ? JSON.parse(parsedQuestionDetails.content) 
+          : { blocks: [] },
         tools: {
           header: Header,
           linkTool: {
@@ -205,6 +212,7 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
           table: Table,
           embed: Embed,
         },
+        
       });
     }
   }, [parsedQuestionDetails]);
@@ -275,9 +283,12 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
                   <span className="text-primary-main">*</span>
                 </FormLabel>
                 <FormControl className="mt-3.5">
-                  <div className="min-h-[500px] w-full rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+                  <div className="min-h-[500px] w-full rounded-lg border border-zinc-200 bg-background p-4 dark:border-zinc-700 dark:bg-zinc-900">
                     <div className="prose prose-stone dark:prose-invert">
-                      <div id="editor" className="min-h-[500px]" />
+                      <div
+                        id="editor"
+                        className="min-h-[500px] text-invert dark:text-zinc-200"
+                      />
                     </div>
                   </div>
                 </FormControl>

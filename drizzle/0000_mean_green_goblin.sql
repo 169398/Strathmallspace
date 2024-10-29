@@ -18,8 +18,8 @@ CREATE TABLE IF NOT EXISTS "answers" (
 	"author_id" uuid NOT NULL,
 	"question_id" uuid NOT NULL,
 	"content" text NOT NULL,
-	"upvotes" integer[] DEFAULT '{}',
-	"downvotes" integer[] DEFAULT '{}',
+	"upvotes" uuid[],
+	"downvotes" uuid[],
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
@@ -44,11 +44,13 @@ CREATE TABLE IF NOT EXISTS "questions" (
 	"title" text NOT NULL,
 	"content" text NOT NULL,
 	"views" integer DEFAULT 0,
-	"upvotes" integer[] DEFAULT '{}',
-	"downvotes" integer[] DEFAULT '{}',
+	"upvotes" uuid[],
+	"downvotes" uuid[],
 	"answers_count" integer DEFAULT 0,
 	"author_id" uuid NOT NULL,
-	"created_at" timestamp DEFAULT now()
+	"created_at" timestamp DEFAULT now(),
+	"tags" uuid[] DEFAULT '{}',
+	"answers" uuid[] DEFAULT '{}'
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "saved_questions" (
@@ -69,6 +71,11 @@ CREATE TABLE IF NOT EXISTS "tags" (
 	"created_at" timestamp DEFAULT now(),
 	"question_count" integer DEFAULT 0,
 	"questions" integer[] DEFAULT '{}',
+	"views" integer DEFAULT 0,
+	"answers" integer DEFAULT 0,
+	"author" uuid,
+	"upvotes" uuid[],
+	"downvotes" uuid[],
 	CONSTRAINT "tags_name_unique" UNIQUE("name")
 );
 --> statement-breakpoint
@@ -176,6 +183,12 @@ END $$;
 --> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "session" ADD CONSTRAINT "session_userId_user_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "tags" ADD CONSTRAINT "tags_author_user_id_fk" FOREIGN KEY ("author") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;

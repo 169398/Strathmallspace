@@ -6,7 +6,7 @@ import { Badge } from '../ui/badge';
 
 interface UserProps {
   user: {
-    _id: string;
+    id: string;
     userId: string;
     picture: string;
     name: string;
@@ -16,7 +16,7 @@ interface UserProps {
 
 const UserCard = async ({ user }: UserProps) => {
   const interactedTags = await getTopInteractedTags({
-    userId: user._id,
+    userId: user.userId,
     limit: 2,
   });
 
@@ -43,7 +43,7 @@ const UserCard = async ({ user }: UserProps) => {
           {interactedTags.length > 0 ? (
             <div className="flex flex-wrap items-center gap-2">
               {interactedTags.map((tag) => (
-                <RenderTags key={tag.id} _id={tag.id.toString()} name={tag.name} />
+                <RenderTags key={tag.id} id={tag.id} name={tag.name} totalQuestions={tag.interactionCount} />
               ))}
             </div>
           ) : (

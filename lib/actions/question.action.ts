@@ -29,13 +29,21 @@ export async function getQuestions(params: GetQuestionParams) {
 
     const query = db
       .select({
-        id: questions.id,
-        title: questions.title,
-        content: questions.content,
-        createdAt: questions.createdAt,
-        views: questions.views,
-        upvotes: questions.upvotes,
-        downvotes: questions.downvotes,
+        question: {
+          id: questions.id,
+          title: questions.title,
+          content: questions.content,
+          createdAt: questions.createdAt,
+          views: questions.views,
+          upvotes: questions.upvotes,
+          downvotes: questions.downvotes,
+          tags: questions.tags,
+          answersCount: sql<number>`(
+            SELECT COUNT(*)::integer 
+            FROM ${answers} 
+            WHERE ${answers.questionId} = ${questions.id}
+          )`.mapWith(Number),
+        },
         author: {
           id: user.id,
           name: user.name,
@@ -80,17 +88,25 @@ export async function getQuestions(params: GetQuestionParams) {
       .offset(skipCount)
       .execute();
 
-    // Group questions by ID to handle multiple tags
+    // Group questions and include both tags and answers count
     const groupedQuestions = questionList.reduce((acc: any[], curr: any) => {
-      const existingQuestion = acc.find(q => q.id === curr.id);
+      const existingQuestion = acc.find(q => q.id === curr.question.id);
       if (existingQuestion) {
         if (curr.tags) {
-          existingQuestion.tags.push(curr.tags);
+          existingQuestion.tags.push({
+            id: curr.tags.id,
+            name: curr.tags.name,
+          });
         }
       } else {
         acc.push({
-          ...curr,
-          tags: curr.tags ? [curr.tags] : [],
+          ...curr.question,
+          author: curr.author,
+          tags: curr.tags ? [{
+            id: curr.tags.id,
+            name: curr.tags.name,
+          }] : [],
+          answersCount: curr.question.answersCount || 0,
         });
       }
       return acc;
@@ -273,27 +289,34 @@ export async function getQuestionById(params: GetQuestionByIdParams) {
 // Upvote a question
 export async function upvoteQuestion(params: QuestionVoteParams) {
   try {
-    const { questionId,  hasDownvoted, hasUpvoted, path } = params;
+    const { questionId, userId, hasDownvoted, hasUpvoted, path } = params;
 
     if (hasUpvoted) {
-      await db
-        .update(questions)
-        .set({ upvotes: sql`${questions.upvotes} - 1` })
-        .where(eq(questions.id, questionId))
-        .execute();
-    } else if (hasDownvoted) {
+      // Remove the user's ID from upvotes array
       await db
         .update(questions)
         .set({
-          downvotes: sql`${questions.downvotes} - 1`,
-          upvotes: sql`${questions.upvotes} + 1`,
+          upvotes: sql`array_remove(${questions.upvotes}, ${userId}::uuid)`
+        })
+        .where(eq(questions.id, questionId))
+        .execute();
+    } else if (hasDownvoted) {
+      // Remove from downvotes and add to upvotes
+      await db
+        .update(questions)
+        .set({
+          downvotes: sql`array_remove(${questions.downvotes}, ${userId}::uuid)`,
+          upvotes: sql`array_append(${questions.upvotes}, ${userId}::uuid)`
         })
         .where(eq(questions.id, questionId))
         .execute();
     } else {
+      // Add the user's ID to upvotes array
       await db
         .update(questions)
-        .set({ upvotes: sql`${questions.upvotes} + 1` })
+        .set({
+          upvotes: sql`array_append(${questions.upvotes}, ${userId}::uuid)`
+        })
         .where(eq(questions.id, questionId))
         .execute();
     }
@@ -308,27 +331,34 @@ export async function upvoteQuestion(params: QuestionVoteParams) {
 // Downvote a question
 export async function downvoteQuestion(params: QuestionVoteParams) {
   try {
-    const { questionId,  hasDownvoted, hasUpvoted, path } = params;
+    const { questionId, userId, hasDownvoted, hasUpvoted, path } = params;
 
     if (hasDownvoted) {
-      await db
-        .update(questions)
-        .set({ downvotes: sql`${questions.downvotes} - 1` })
-        .where(eq(questions.id, questionId))
-        .execute();
-    } else if (hasUpvoted) {
+      // Remove the user's ID from downvotes array
       await db
         .update(questions)
         .set({
-          upvotes: sql`${questions.upvotes} - 1`,
-          downvotes: sql`${questions.downvotes} + 1`,
+          downvotes: sql`array_remove(${questions.downvotes}, ${userId}::uuid)`
+        })
+        .where(eq(questions.id, questionId))
+        .execute();
+    } else if (hasUpvoted) {
+      // Remove from upvotes and add to downvotes
+      await db
+        .update(questions)
+        .set({
+          upvotes: sql`array_remove(${questions.upvotes}, ${userId}::uuid)`,
+          downvotes: sql`array_append(${questions.downvotes}, ${userId}::uuid)`
         })
         .where(eq(questions.id, questionId))
         .execute();
     } else {
+      // Add the user's ID to downvotes array
       await db
         .update(questions)
-        .set({ downvotes: sql`${questions.downvotes} + 1` })
+        .set({
+          downvotes: sql`array_append(${questions.downvotes}, ${userId}::uuid)`
+        })
         .where(eq(questions.id, questionId))
         .execute();
     }
@@ -469,6 +499,15 @@ export async function getRecommendedQuestions(params: RecommendedParams) {
         views: questions.views,
         upvotes: questions.upvotes,
         downvotes: questions.downvotes,
+        answersCount: sql<number>`(
+          SELECT COUNT(*)::integer 
+          FROM ${answers} 
+          WHERE ${answers.questionId} = ${questions.id}
+        )`.mapWith(Number),
+        tags: {
+          id: tags.id,
+          name: tags.name,
+        },
       })
       .from(questions)
       .leftJoin(questionTags, eq(questionTags.questionId, questions.id))
@@ -494,6 +533,7 @@ export async function getRecommendedQuestions(params: RecommendedParams) {
     throw error;
   }
 }
+
 
 
 

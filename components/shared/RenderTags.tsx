@@ -3,15 +3,15 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 
 interface props {
-  _id: string;
+  id: string;
   name: string;
   totalQuestions?: number;
   showCount?: boolean;
 }
 
-const RenderTags = ({ _id, name, totalQuestions, showCount }: props) => {
+const RenderTags = ({ id, name, totalQuestions, showCount }: props) => {
   return (
-    <Link href={`/tags/${_id}`} className="flex-between gap-2">
+    <Link href={`/tags/${id}`} className="flex-between gap-2">
       <Badge
         variant="outline"
         className="subtle-medium tag-bg rounded-md px-4 py-2 uppercase"

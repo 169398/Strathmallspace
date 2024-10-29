@@ -86,7 +86,6 @@ export type UpdateUserParams = {
     location?: string;
     bio?: string;
   };
-  path: string;
 };
 // Deleting a user
 export interface DeleteUserParams {
@@ -99,13 +98,13 @@ export interface GetQuestionByIdParams {
 }
 
 // Voting on a question
-export interface QuestionVoteParams {
+export type QuestionVoteParams = {
   questionId: string;
   userId: string;
   hasUpvoted: boolean;
   hasDownvoted: boolean;
   path: string;
-}
+};
 
 // Getting all tags with pagination and filtering
 export interface GetAllTagsParams {
@@ -155,6 +154,7 @@ export interface GetUserStatsParams {
   userId: string;
   page?: number;
   pageSize?: number;
+
 }
 
 // Deleting a question

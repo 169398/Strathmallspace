@@ -23,7 +23,7 @@ const Tags = async ({searchParams}: any) => {
 
   return (
     <>
-      <h1 className="sm:h1-bold h2-bold text-invert w-full font-inter">
+      <h1 className="sm:h1-bold h2-bold text-invert font-inter w-full">
         All Tags
       </h1>
 
@@ -50,12 +50,12 @@ const Tags = async ({searchParams}: any) => {
               className=" rounded-2xl shadow-sm"
             >
               <div className="card-wrapper flex w-full flex-col items-center rounded-2xl border px-5 py-10 sm:w-[260px] ">
-                <div className="w-fit rounded-sm border !border-primary-400 px-5 py-1.5 text-primary-700 dark:text-primary-300">
+                <div className="!border-primary-400 text-primary-700 dark:text-primary-300 w-fit rounded-sm border px-5 py-1.5">
                   <p className="small-regular uppercase ">{tag.name}</p>
                 </div>
                 <p className="small-medium text-invert-3 mt-3.5">
                   <span className="body-semibold primary-text-gradient mr-2.5">
-                    {tag.questions?.length}+
+                    {tag.questionCount}
                   </span>
                   Questions
                 </p>

@@ -27,9 +27,9 @@ const QuestionCard = async ({
   title,
   tags = [],
   author = { id: "", name: "", picture: "", userId: "" },
-  upvotes = [],
+  upvotes = [], // default value is already here, but we still need null checks
   views = 0,
-  answers = [],
+  answers,
   createdAt,
 }: QuestionCardProps) => {
    
@@ -65,7 +65,7 @@ const QuestionCard = async ({
         {/* Ensure tags is an array before calling map */}
         {Array.isArray(tags) &&
           tags.map((tag) => (
-            <RenderTags key={tag.id} name={tag.name} _id={tag.id} />
+            <RenderTags key={tag.id} name={tag.name} id={tag.id} />
           ))}
       </div>
 
@@ -86,7 +86,7 @@ const QuestionCard = async ({
             alt="upvotes"
             title="Votes"
             textStyles="small-medium card-text-invert-secondary"
-            value={upvotes.length === 0 ? "0" : formatNumber(upvotes.length)}
+            value={!upvotes || upvotes.length === 0 ? "0" : formatNumber(upvotes.length)}
           />
           <Metric
             imgUrl="/assets/icons/message.svg"
@@ -94,6 +94,7 @@ const QuestionCard = async ({
             title="Answers"
             textStyles="small-medium card-text-invert-secondary"
             value={
+              !answers ? "0" :
               Array.isArray(answers) 
                 ? formatNumber(answers.length)
                 : typeof answers === 'number'
@@ -107,7 +108,7 @@ const QuestionCard = async ({
             alt="eye"
             title="Views"
             textStyles="small-medium card-text-invert-secondary"
-            value={views === 0 ? "0" : formatNumber(views)}
+            value={!views || views === 0 ? "0" : formatNumber(views)}
           />
         </div>
       </div>

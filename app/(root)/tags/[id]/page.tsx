@@ -25,7 +25,7 @@ const Page = async ({ params, searchParams }: any) => {
   return (
     <main>
       <h1 className="sm:h1-bold h2-bold text-invert w-full ">
-        Questions associated with:{' '}
+        Questions associated with:{" "}
         <span className="capitalize">{result.tagTitle}</span>
       </h1>
 
@@ -46,12 +46,20 @@ const Page = async ({ params, searchParams }: any) => {
               key={question.id}
               id={question.id}
               title={question.title}
-              tags={question.tags}
-              author={question.author}
-              upvotes={question.upvotes}
-              views={question.views}
-              answers={question.answers}
-              createdAt={question.createdAt}
+              tags={Array.isArray(question.tags) ? question.tags.map((tag: { tagId: string } | string) => ({
+                id: typeof tag === "string" ? tag : tag.tagId,
+                name: typeof tag === "string" ? tag : tag.tagId,
+              })) : []}
+              author={{
+                id: question.author.id,
+                name: question.author.name,
+                picture: question.author.image ?? "",
+                userId: question.author.id,
+              }}
+              upvotes={Array.isArray(question.upvotes) ? question.upvotes : []}
+              views={question.views ?? 0}
+              answers={question.answersCount || question.answers?.length || 0}
+              createdAt={question.createdAt ?? new Date()}
             />
           ))
         ) : (

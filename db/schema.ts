@@ -152,14 +152,15 @@ export const interactions = pgTable("interactions", {
   tags: uuid("tags").array().default([]),
 });
 
-// Saved Questions Table (Many-to-Many between Users and Questions)
+
 export const savedQuestions = pgTable(
   "saved_questions",
   {
-    userId: uuid("user_id")
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("userId")
       .references(() => user.id)
       .notNull(),
-    questionId: uuid("question_id")
+    questionId: uuid("questionId")
       .references(() => questions.id)
       .notNull(),
   },
