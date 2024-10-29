@@ -212,6 +212,7 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
           table: Table,
           embed: Embed,
         },
+        
       });
     }
   }, [parsedQuestionDetails]);
@@ -282,9 +283,12 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
                   <span className="text-primary-main">*</span>
                 </FormLabel>
                 <FormControl className="mt-3.5">
-                  <div className="min-h-[500px] w-full rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+                  <div className="min-h-[500px] w-full rounded-lg border border-zinc-200 bg-background p-4 dark:border-zinc-700 dark:bg-zinc-900">
                     <div className="prose prose-stone dark:prose-invert">
-                      <div id="editor" className="min-h-[500px]" />
+                      <div
+                        id="editor"
+                        className="min-h-[500px] text-invert dark:text-zinc-200"
+                      />
                     </div>
                   </div>
                 </FormControl>

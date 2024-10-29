@@ -14,6 +14,7 @@ import { revalidatePath } from "next/cache";
 import { eq, or, desc, asc, and, sql } from "drizzle-orm";
 import { assignBadges } from "../utils";
 import { signIn, signOut } from "../auth";
+import path from "path";
 
 
 export async function getUserById(userId: string) {
@@ -57,7 +58,7 @@ export async function createUser(userData: CreateUserParams) {
   }
 }
 export async function updateUser(params: UpdateUserParams) {
-  const { userId, updateData, path } = params;
+  const { userId, updateData,  } = params;
 
   try {
     const cleanedUpdateData = Object.fromEntries(
@@ -84,8 +85,13 @@ export async function updateUser(params: UpdateUserParams) {
       };
     }
 
-    if (path) {
-      revalidatePath(path);
+    // Only attempt revalidation if we're in a server context
+    if (path && typeof window === 'undefined') {
+      try {
+        revalidatePath(path as unknown as string);
+      } catch (error) {
+        console.log('Revalidation skipped - not in server context');
+      }
     }
 
     return {
@@ -366,33 +372,23 @@ export async function getUserInfo(params: GetUserInfoParams) {
 
     const totalAnswers = totalAnswersResult[0]?.count ?? 0;
 
-    // Sum upvotes for questions authored by the user
-   const questionUpvotesResult = await db
-     .select({
-       sum: sql<number>`sum(u)`.mapWith(Number),
-     })
-     .from(
-       sql`(
-      SELECT unnest(${questions.upvotes}) AS u
-      FROM ${questions}
-      WHERE ${eq(questions.authorId, user.id)}
-    )`
-     );
+    // Modified upvotes counting for questions
+    const questionUpvotesResult = await db
+      .select({
+        sum: sql<number>`COALESCE(SUM(ARRAY_LENGTH(${questions.upvotes}, 1)), 0)`.mapWith(Number),
+      })
+      .from(questions)
+      .where(eq(questions.authorId, user.id));
 
     const questionUpvotes = questionUpvotesResult[0]?.sum ?? 0;
 
-    // Sum upvotes for answers authored by the user
-   const answerUpvotesResult = await db
-     .select({
-       sum: sql<number>`sum(u)`.mapWith(Number),
-     })
-     .from(
-       sql`(
-      SELECT unnest(${answers.upvotes}) AS u
-      FROM ${answers}
-      WHERE ${eq(answers.authorId, user.id)}
-    )`
-     );
+    // Modified upvotes counting for answers
+    const answerUpvotesResult = await db
+      .select({
+        sum: sql<number>`COALESCE(SUM(ARRAY_LENGTH(${answers.upvotes}, 1)), 0)`.mapWith(Number),
+      })
+      .from(answers)
+      .where(eq(answers.authorId, user.id));
 
     const answerUpvotes = answerUpvotesResult[0]?.sum ?? 0;
 
@@ -444,20 +440,75 @@ export async function getUserQuestions(params: GetUserStatsParams) {
 
     const totalQuestions = totalQuestionsResult[0]?.count ?? 0;
 
-    // Fetch questions and join with author data
-    const questionsList = await db.query.questions.findMany({
-      where: (questions, { eq }) => eq(questions.authorId, userId),
-      offset,
-      limit: pageSize,
-      with: {
-        author: true, tags: true, answers: true, 
-        
-      },
-    });
+    // Modified query to properly include tags
+    const questionsList = await db
+      .select({
+        question: {
+          id: questions.id,
+          title: questions.title,
+          content: questions.content,
+          views: questions.views,
+          upvotes: questions.upvotes,
+          downvotes: questions.downvotes,
+          createdAt: questions.createdAt,
+          authorId: questions.authorId,
+        },
+        author: {
+          id: user.id,
+          name: user.name,
+          username: user.username,
+          image: user.image,
+        },
+        tag: {
+          id: tags.id,
+          name: tags.name,
+        },
+        answersCount: sql<number>`(
+          SELECT COUNT(*)::integer 
+          FROM ${answers} 
+          WHERE ${answers.questionId} = ${questions.id}
+        )`.mapWith(Number),
+      })
+      .from(questions)
+      .leftJoin(user, eq(questions.authorId, user.id))
+      .leftJoin(questionTags, eq(questions.id, questionTags.questionId))
+      .leftJoin(tags, eq(questionTags.tagId, tags.id))
+      .where(eq(questions.authorId, userId))
+      .orderBy(desc(questions.createdAt))
+      .offset(offset)
+      .limit(pageSize);
+
+    // Group the results by question to combine tags
+    const groupedQuestions = questionsList.reduce((acc: any[], curr: any) => {
+      const existingQuestion = acc.find(q => q.id === curr.question.id);
+      if (existingQuestion) {
+        if (curr.tag?.id) {
+          existingQuestion.tags.push({
+            id: curr.tag.id,
+            name: curr.tag.name,
+          });
+        }
+      } else {
+        acc.push({
+          ...curr.question,
+          author: curr.author,
+          tags: curr.tag?.id ? [{
+            id: curr.tag.id,
+            name: curr.tag.name,
+          }] : [],
+          answers: curr.answersCount || 0
+        });
+      }
+      return acc;
+    }, []);
 
     const isNextQuestions = questionsList.length === pageSize;
 
-    return { totalQuestions, questions: questionsList, isNextQuestions };
+    return { 
+      totalQuestions, 
+      questions: groupedQuestions, 
+      isNextQuestions 
+    };
   } catch (error) {
     console.error(error);
     throw error;

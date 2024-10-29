@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { updateUser } from '@/lib/actions/user.action';
 import { ProfileSchema } from '@/lib/validation';
@@ -18,7 +18,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '../ui/textarea';
 import { z } from 'zod';
-import { useToast } from '../ui/use-toast';
+import { toast } from 'sonner';
 
 interface Props {
   userId: string;
@@ -28,8 +28,6 @@ interface Props {
 const Profile = ({ userId, user }: Props) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
-  const pathname = usePathname();
-  const toast = useToast();
 
   const form = useForm({
     resolver: zodResolver(ProfileSchema),
@@ -56,27 +54,19 @@ const Profile = ({ userId, user }: Props) => {
           location: values.location,
           bio: values.bio,
         },
-        path: pathname,
       });
 
       console.log("Update response:", response);
 
       if (response.success) {
-        toast.toast({
-          title: "Success",
-          description: response.message,
-        });
-        router.push(`/profile/${userId}`);
+        toast.success(response.message);
+        router.replace(`/profile/${userId}`);
       } else {
         throw new Error(response.message || "Failed to update profile");
       }
     } catch (error) {
       console.error("Profile update error:", error);
-      toast.toast({
-        title: "Error",
-        description: (error as Error).message || "Something went wrong",
-        variant: "destructive",
-      });
+      toast.error((error as Error).message || "Something went wrong");
     } finally {
       setIsSubmitting(false);
     }

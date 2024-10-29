@@ -41,7 +41,7 @@ const RightSidebar = async () => {
           {popularTags.map((tag) => (
             <RenderTags
               key={tag.id}
-              _id={tag.id.toString()}
+              id={tag.id}
               name={tag.name}
               totalQuestions={tag.totalQuestions ?? 0}
               showCount

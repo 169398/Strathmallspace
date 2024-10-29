@@ -65,7 +65,7 @@ const QuestionCard = async ({
         {/* Ensure tags is an array before calling map */}
         {Array.isArray(tags) &&
           tags.map((tag) => (
-            <RenderTags key={tag.id} name={tag.name} _id={tag.id} />
+            <RenderTags key={tag.id} name={tag.name} id={tag.id} />
           ))}
       </div>
 

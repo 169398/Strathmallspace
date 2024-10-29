@@ -9,7 +9,7 @@ import { createAnswer } from '@/lib/actions/answer.action';
 import { usePathname } from 'next/navigation';
 import Loading from '../shared/Loading';
 import { uploadFiles } from "@/lib/uploadthing";
-import { toast } from '../ui/use-toast';
+import { toast } from 'sonner';
 
 interface AnswerProps {
   question: string;
@@ -54,6 +54,7 @@ const Answers = ({ question, questionId, authorId }: AnswerProps) => {
               endpoint: "/api/link",
             },
           },
+         
           image: {
             class: ImageTool,
             config: {
@@ -128,11 +129,7 @@ const Answers = ({ question, questionId, authorId }: AnswerProps) => {
       const blocks = await editorRef.current?.save();
       
       if (!blocks || blocks.blocks.length === 0) {
-        toast({
-          title: "Error",
-          description: "Please write your answer before submitting",
-          variant: "destructive"
-        });
+        toast.error("Please write your answer before submitting");
         return;
       }
 

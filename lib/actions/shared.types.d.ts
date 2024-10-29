@@ -86,7 +86,6 @@ export type UpdateUserParams = {
     location?: string;
     bio?: string;
   };
-  path: string;
 };
 // Deleting a user
 export interface DeleteUserParams {
@@ -155,7 +154,7 @@ export interface GetUserStatsParams {
   userId: string;
   page?: number;
   pageSize?: number;
-  
+
 }
 
 // Deleting a question

@@ -132,8 +132,8 @@ const Page = async ({ params, searchParams }: Props) => {
           {Array.isArray(result.tags) &&
             result.tags.map((tag: any) => (
               <RenderTags
-                key={tag._id}
-                _id={tag._id}
+                key={tag.id}
+                id={tag.id}
                 name={tag.name}
                 showCount={false}
               />

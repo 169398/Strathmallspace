@@ -15,51 +15,26 @@ export async function getTopInteractedTags(params: GetTopInteractedTagsParams) {
   try {
     const { userId, limit = 10 } = params;
 
-    // Find interactions by the user
-    const userInteractions = await db
-      .select({
-        interactionId: interactions.id,
-        tagId: interactions.tagId,
-      })
-      .from(interactions)
-      .where(eq(interactions.userId, userId));
-
-    // If no interactions are found, return an empty array or a default response
-    if (!userInteractions.length) {
-      return []; 
-    }
-
-    // Count interactions for each tag
-    const tagCounts: { [tagId: string]: number } = {};
-    userInteractions.forEach((interaction) => {
-      if (interaction.tagId !== null) {
-        if (tagCounts[interaction.tagId]) {
-          tagCounts[interaction.tagId]++;
-        } else {
-          tagCounts[interaction.tagId] = 1;
-        }
-      }
-    });
-
-    // Sort tags by interaction count
-    const sortedTags = Object.entries(tagCounts)
-      .sort(([, countA], [, countB]) => countB - countA)
-      .slice(0, limit)
-      .map(([tagId]) => tagId);
-
-    // Get tag details from tags table
     const topTags = await db
       .select({
         id: tags.id,
         name: tags.name,
+        interactionCount: sql<number>`
+          COUNT(DISTINCT ${questionTags.questionId})::integer
+        `.mapWith(Number).as('interaction_count')
       })
       .from(tags)
-      .where(inArray(tags.id, sortedTags as string[]));
+      .innerJoin(questionTags, eq(questionTags.tagId, tags.id))
+      .innerJoin(questions, eq(questions.id, questionTags.questionId))
+      .where(eq(questions.authorId, userId))
+      .groupBy(tags.id, tags.name)
+      .orderBy(desc(sql`interaction_count`))
+      .limit(limit);
 
     return topTags;
   } catch (error) {
-    console.error(error);
-    throw error;
+    console.error("Error in getTopInteractedTags:", error);
+    return [];
   }
 }
 
@@ -75,7 +50,7 @@ export async function getAllTags(params: GetAllTagsParams) {
     let sortOptions;
     switch (filter) {
       case 'popular':
-        sortOptions = desc(tags.questionCount);
+        sortOptions = desc(sql`question_count`);
         break;
       case 'recent':
         sortOptions = desc(tags.createdAt);
@@ -91,22 +66,39 @@ export async function getAllTags(params: GetAllTagsParams) {
         break;
     }
 
+    // Base query with question count
+    const baseQuery = db
+      .select({
+        id: tags.id,
+        name: tags.name,
+        description: tags.description,
+        createdAt: tags.createdAt,
+        questionCount: sql<number>`
+          COUNT(DISTINCT ${questionTags.questionId})::integer
+        `.mapWith(Number).as('question_count')
+      })
+      .from(tags)
+      .leftJoin(questionTags, eq(tags.id, questionTags.tagId))
+      .groupBy(tags.id);
+
+    // Apply search filter if provided
     const query = searchQuery
-      ? db
-          .select()
-          .from(tags)
-          .where(like(tags.name, `%${searchQuery}%`))
-      : db.select().from(tags);
+      ? baseQuery.where(like(tags.name, `%${searchQuery}%`))
+      : baseQuery;
 
     const tagsList = await query
       .orderBy(sortOptions)
       .offset(skipCount)
-      .limit(pageSize)
-      .execute();
+      .limit(pageSize);
 
-    // Explicitly define the type for totalTagsResult
-    const totalTagsResult = await db.execute<{ count: number }>(sql`SELECT COUNT(*) as count FROM ${tags}`);
-    const totalTags = (totalTagsResult as unknown as { count: number }[])[0]?.count || 0; 
+    const totalTagsResult = await db
+      .select({
+        count: sql<number>`COUNT(DISTINCT ${tags.id})::integer`.mapWith(Number),
+      })
+      .from(tags)
+      .where(searchQuery ? like(tags.name, `%${searchQuery}%`) : undefined);
+
+    const totalTags = totalTagsResult[0]?.count || 0;
     const isNext = totalTags > skipCount + tagsList.length;
 
     return { tags: tagsList, isNext };
@@ -189,10 +181,14 @@ export async function getPopularTags() {
       .select({
         id: tags.id,
         name: tags.name,
-        totalQuestions: tags.questionCount,
+        totalQuestions: sql<number>`
+          COUNT(DISTINCT ${questionTags.questionId})::integer
+        `.mapWith(Number).as('total_questions')
       })
       .from(tags)
-      .orderBy(desc(tags.questionCount))
+      .leftJoin(questionTags, eq(tags.id, questionTags.tagId))
+      .groupBy(tags.id)
+      .orderBy(desc(sql`total_questions`))
       .limit(5);
 
     return popularTags;
