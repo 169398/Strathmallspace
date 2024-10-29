@@ -10,8 +10,8 @@ const twitterSite = TWITTER_SITE
   : undefined;
 
 export function constructMetadata({
-  title = "StrathMallPulse - Your Campus Social Hub",
-  description = "StrathMallPulse connects university students with campus life through events, study groups, forums, and more. Explore resources, collaborate, and engage with your campus community.",
+  title = "StrathSpace - Dive into everything ",
+  description = "StrathSpace is the place to find everything. From events,jobs, to resources, we've got you covered.",
   image = "/thumbnail.png",
   icons = "/favicon.ico",
   noIndex = false,
@@ -46,7 +46,7 @@ export function constructMetadata({
         },
       }),
     icons,
-    metadataBase: new URL("https://strathmallspace.vercel.app"), 
+    metadataBase: new URL("https://strathspace.vercel.app"), 
     ...(noIndex && {
       robots: {
         index: false,
