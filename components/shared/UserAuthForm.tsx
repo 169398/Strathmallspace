@@ -41,7 +41,7 @@ const UserAuthForm: FC<UserAuthFormProps> = ({ className, ...props }) => {
         disabled={isLoading}
       >
         {isLoading ? null : <Icons.google className="mr-2 size-4" />}
-        <span className='text-gray-950'>Google</span>
+        <span className='text-gray-950 dark:text-gray-50'>Google</span>
       </Button>
     </div>
   );

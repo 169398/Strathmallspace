@@ -24,10 +24,9 @@ const Navbar = async () => {
         {session ? (
           <div className="flex items-center gap-2">
             <UserAccountNav user={session.user!} />
-            </div>
-
+          </div>
         ) : (
-          <Link href="/sign-in">
+          <Link href="/sign-in " scroll={false}>
             <button className="text-sm text-blue-600 dark:text-blue-400">
               Sign in
             </button>

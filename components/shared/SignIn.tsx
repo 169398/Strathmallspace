@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator'
 
 const SignIn = () => {
   return (
-    <Card className="w-full max-w-md border-none bg-white/75 shadow-xl backdrop-blur-lg">
+    <Card className="dark:bg-primaryDark-800 w-full max-w-md border-none bg-white/75 shadow-xl backdrop-blur-lg">
       <CardHeader className="space-y-1">
         <div className="flex items-center justify-center space-x-2">
           <Icons.logo className="size-8" />
@@ -14,7 +14,7 @@ const SignIn = () => {
             StrathSpace
           </CardTitle>
         </div>
-        <CardDescription className="text-center">
+        <CardDescription className="text-center text-slate-950 dark:text-gray-200">
           Welcome back! Please sign in to your account.
         </CardDescription>
       </CardHeader>
@@ -26,33 +26,39 @@ const SignIn = () => {
           <Separator className="w-full" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="text-muted-foreground bg-white px-2">
+          <span className="text-muted-foreground dark:bg-primaryDark-800 bg-white px-2 text-slate-950">
             New to StrathSpace?
           </span>
         </div>
       </div>
       <CardFooter className="flex flex-col space-y-4">
-        <div className="text-muted-foreground text-center text-sm">
+        <div className=" text-center text-sm">
           <Link
             href="/sign-up"
-            className="hover:text-primary text-primary underline-offset-4 transition-colors hover:underline"
+            className="text-blue-500 underline-offset-4 transition-colors hover:text-blue-500 hover:underline dark:text-white"
           >
             Create an account
           </Link>
         </div>
-        <p className="text-muted-foreground px-8 text-center text-xs">
-          By continuing, you agree to our{' '}
-          <Link href="/terms" className="hover:text-primary underline underline-offset-4">
+        <p className=" px-8 text-center text-xs text-slate-950 dark:text-white">
+          By continuing, you agree to our{" "}
+          <Link
+            href="/terms"
+            className="text-slate-950 underline underline-offset-4 hover:text-blue-500 dark:text-white"
+          >
             Terms of Service
-          </Link>{' '}
-          and{' '}
-          <Link href="/privacy" className="hover:text-primary underline underline-offset-4">
+          </Link>{" "}
+          and{" "}
+          <Link
+            href="/privacy"
+            className="text-slate-950 underline underline-offset-4 hover:text-blue-500 dark:text-white"
+          >
             Privacy Policy
           </Link>
         </p>
       </CardFooter>
     </Card>
-  )
+  );
 }
 
 export default SignIn
