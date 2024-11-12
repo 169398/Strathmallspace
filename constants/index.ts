@@ -1,10 +1,10 @@
 import { SidebarLink } from "@/types";
 
-export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "StrathMallSpace";
+export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "StrathSpace";
 export const APP_DESCRIPTION =process.env.NEXT_PUBLIC_APP_DESCRIPTION ||
-  "StrathMall - The marketplace for all university and local sellers";
+  "StrathSpace - The best place to ask any question and get answers from the community";
 
-export const SENDER_EMAIL =process.env.SENDER_EMAIL || "StrathSpace <info@strathmall.com>";
+export const SENDER_EMAIL =process.env.SENDER_EMAIL || "StrathSpace <info@strathspace.com>";
 
 export const USER_ROLES = process.env.USER_ROLES
   ? process.env.USER_ROLES.split(", ")
@@ -62,15 +62,20 @@ export const sidebarLinks: SidebarLink[] = [
     route: "/collection",
     label: "Collections",
   },
-  // {
-  //   imgURL: "/assets/icons/suitcase.svg",
-  //   route: "/jobs",
-  //   label: "Find Jobs",
-  // },
+   {
+     imgURL: "/assets/icons/suitcase.svg",
+   route: "/jobs",
+     label: "Find Jobs",
+  },
   {
     imgURL: "/assets/icons/tag.svg",
     route: "/tags",
     label: "Tags",
+  },
+  {
+    imgURL: "/assets/icons/message.svg",
+    route: "/inbox",
+    label: "Inbox",
   },
   {
     imgURL: "/assets/icons/user.svg",
@@ -82,11 +87,11 @@ export const sidebarLinks: SidebarLink[] = [
     route: "/ask-question",
     label: "Ask a question",
   },
-  {
-    imgURL: "/assets/icons/stars-white-2.svg",
-    route: "/ask-ai",
-    label: "Ask AI",
-  },
+  // {
+  //   imgURL: "/assets/icons/stars-white-2.svg",
+  //   route: "/ask-ai",
+  //   label: "Ask AI",
+  // },
 ];
 
 export const BADGE_CRITERIA = {

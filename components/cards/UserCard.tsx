@@ -3,6 +3,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import RenderTags from '../shared/RenderTags';
 import { Badge } from '../ui/badge';
+import { auth } from '@/lib/auth';
+import MessageButton from '../shared/MessageButton';
 
 interface UserProps {
   user: {
@@ -15,6 +17,7 @@ interface UserProps {
 }
 
 const UserCard = async ({ user }: UserProps) => {
+  const session = await auth();
   const interactedTags = await getTopInteractedTags({
     userId: user.userId,
     limit: 2,
@@ -32,12 +35,21 @@ const UserCard = async ({ user }: UserProps) => {
             className="rounded-full"
           />
         </Link>
-        <Link href={`/profile/${user.userId}`}>
-          <div className="mt-4 text-center">
-            <h3 className="h3-bold text-invert line-clamp-1">{user.name}</h3>
-            <p className=" body-regular text-invert-3 mt-2">@{user.username}</p>
-          </div>
-        </Link>
+        <div className="mt-4 flex flex-col items-center gap-3">
+          <Link href={`/profile/${user.userId}`}>
+            <div className="text-center">
+              <h3 className="h3-bold text-invert line-clamp-1">{user.name}</h3>
+              <p className="body-regular text-invert-3 mt-2">@{user.username}</p>
+            </div>
+          </Link>
+          
+          <MessageButton 
+            currentUserId={session?.user?.id}
+            recipientId={user.userId}
+            icon="commentReply"
+            label="Message"
+          />
+        </div>
 
         <div className="mt-5">
           {interactedTags.length > 0 ? (

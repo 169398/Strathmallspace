@@ -5,6 +5,7 @@ import {
   timestamp,
   integer,
   uuid,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { relations, type InferSelectModel } from "drizzle-orm";
 import { primaryKey } from "drizzle-orm/pg-core/primary-keys";
@@ -92,8 +93,8 @@ export const tags = pgTable("tags", {
   views: integer("views").default(0),
   answers: integer("answers").default(0),
   author: uuid("author").references(() => user.id),
-  upvotes: uuid('upvotes').array(),
-  downvotes: uuid('downvotes').array(),
+  upvotes: uuid("upvotes").array(),
+  downvotes: uuid("downvotes").array(),
 });
 
 // Questions Table
@@ -135,7 +136,6 @@ export const answers = pgTable("answers", {
   upvotes: uuid("upvotes").array(),
   downvotes: uuid("downvotes").array(),
   createdAt: timestamp("created_at").defaultNow(),
-  
 });
 
 // Interactions Table
@@ -151,7 +151,6 @@ export const interactions = pgTable("interactions", {
   createdAt: timestamp("created_at").defaultNow(),
   tags: uuid("tags").array().default([]),
 });
-
 
 export const savedQuestions = pgTable(
   "saved_questions",
@@ -169,13 +168,14 @@ export const savedQuestions = pgTable(
   })
 );
 
-
 // Relations
 export const userRelations = relations(user, ({ many }) => ({
   questions: many(questions),
   answers: many(answers),
   interactions: many(interactions),
   savedQuestions: many(savedQuestions),
+  postedJobs: many(jobs, { relationName: "postedJobs" }),
+  assignedJobs: many(jobs, { relationName: "assignedJobs" }),
 }));
 
 export const questionRelations = relations(questions, ({ one, many }) => ({
@@ -235,6 +235,33 @@ export const savedQuestionRelations = relations(savedQuestions, ({ one }) => ({
   }),
 }));
 
+// Jobs Table
+export const jobs = pgTable("jobs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  price: integer("price").notNull(),
+  start_date: timestamp("start_date").notNull(),
+  deadline: timestamp("deadline").notNull(),
+  done: boolean("done").default(false),
+  author_id: uuid("author_id")
+    .references(() => user.id)
+    .notNull(),
+  assigned_to: uuid("assigned_to").references(() => user.id),
+  created_at: timestamp("created_at").defaultNow(),
+});
+
+// Add job relations to user
+export const jobRelations = relations(jobs, ({ one }) => ({
+  author: one(user, {
+    fields: [jobs.author_id],
+    references: [user.id],
+  }),
+  assignee: one(user, {
+    fields: [jobs.assigned_to],
+    references: [user.id],
+  }),
+}));
 // Infer types
 export type User = InferSelectModel<typeof user>;
 export type Question = InferSelectModel<typeof questions>;
@@ -242,3 +269,31 @@ export type Answer = InferSelectModel<typeof answers>;
 export type Tag = InferSelectModel<typeof tags>;
 export type Interaction = InferSelectModel<typeof interactions>;
 export type SavedQuestion = InferSelectModel<typeof savedQuestions>;
+export type Job = InferSelectModel<typeof jobs>;
+
+// Messages Table
+export const messages = pgTable("messages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  senderId: uuid("sender_id")
+    .references(() => user.id)
+    .notNull(),
+  receiverId: uuid("receiver_id")
+    .references(() => user.id)
+    .notNull(),
+  content: text("content").notNull(),
+  read: boolean("read").default(false),
+  replyToId: uuid("reply_to_id").references((): any => messages.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Add message relations
+export const messageRelations = relations(messages, ({ one }) => ({
+  sender: one(user, {
+    fields: [messages.senderId],
+    references: [user.id],
+  }),
+  receiver: one(user, {
+    fields: [messages.receiverId],
+    references: [user.id],
+  }),
+}));

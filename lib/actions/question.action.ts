@@ -375,13 +375,22 @@ export async function deleteQuestion(params: DeleteQuestionParams) {
   try {
     const { questionId, path } = params;
 
-    // First, delete related question tags
+    // Get tags associated with this question
+    const questionTagsToDelete = await db
+      .select({
+        tagId: questionTags.tagId
+      })
+      .from(questionTags)
+      .where(eq(questionTags.questionId, questionId))
+      .execute();
+
+    // Delete question tags relationship
     await db
       .delete(questionTags)
       .where(eq(questionTags.questionId, questionId))
       .execute();
 
-    // Then delete interactions
+    // Delete interactions
     await db
       .delete(interactions)
       .where(eq(interactions.questionId, questionId))
@@ -393,17 +402,27 @@ export async function deleteQuestion(params: DeleteQuestionParams) {
       .where(eq(answers.questionId, questionId))
       .execute();
 
-    // Finally delete the question itself
+    // Delete the question
     await db
       .delete(questions)
       .where(eq(questions.id, questionId))
       .execute();
 
-    // Update tags count if needed
-    await db
-      .update(tags)
-      .set({ questionCount: sql`${tags.questionCount} - 1` })
-      .execute();
+    // Delete tags that are no longer used by any questions
+    for (const tag of questionTagsToDelete) {
+      const tagUsage = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(questionTags)
+        .where(eq(questionTags.tagId, tag.tagId))
+        .execute();
+
+      if (tagUsage[0].count === 0) {
+        await db
+          .delete(tags)
+          .where(eq(tags.id, tag.tagId))
+          .execute();
+      }
+    }
 
     revalidatePath(path);
   } catch (error) {

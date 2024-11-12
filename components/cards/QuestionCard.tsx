@@ -5,6 +5,7 @@ import Metric from "../shared/Metric";
 import { formatNumber, getTimeStamps } from "@/lib/utils";
 import EditDeleteAction from "../shared/EditDeleteAction";
 import { auth } from "@/lib/auth";
+import MessageButton from "../shared/MessageButton";
 
 interface QuestionCardProps {
   id: string;
@@ -71,7 +72,7 @@ const QuestionCard = async ({
 
       <div className="flex-between mt-6 w-full flex-wrap gap-3">
         <Metric
-          imgUrl={author?.picture || "/assets/icons/user.svg"} 
+          imgUrl={author?.picture || "/assets/icons/user.svg"}
           alt="user avatar"
           title={` - asked ${getTimeStamps(parsedDate)}`}
           textStyles="body-medium card-text-invert-secondary"
@@ -79,14 +80,23 @@ const QuestionCard = async ({
           isAuthor
           value={author?.name || "Anonymous"}
         />
-
+        <MessageButton
+          currentUserId={session?.user?.id}
+          recipientId={author.id}
+          icon="commentReply"
+          label="Message"
+        />
         <div className="flex-sm:justify-start flex items-center gap-3 max-sm:flex-wrap">
           <Metric
             imgUrl="/assets/icons/like.svg"
             alt="upvotes"
             title="Votes"
             textStyles="small-medium card-text-invert-secondary"
-            value={!upvotes || upvotes.length === 0 ? "0" : formatNumber(upvotes.length)}
+            value={
+              !upvotes || upvotes.length === 0
+                ? "0"
+                : formatNumber(upvotes.length)
+            }
           />
           <Metric
             imgUrl="/assets/icons/message.svg"
@@ -94,12 +104,13 @@ const QuestionCard = async ({
             title="Answers"
             textStyles="small-medium card-text-invert-secondary"
             value={
-              !answers ? "0" :
-              Array.isArray(answers) 
+              !answers
+                ? "0"
+                : Array.isArray(answers)
                 ? formatNumber(answers.length)
-                : typeof answers === 'number'
-                  ? formatNumber(answers)
-                  : '0'
+                : typeof answers === "number"
+                ? formatNumber(answers)
+                : "0"
             }
             href={`/question/${id}`}
           />

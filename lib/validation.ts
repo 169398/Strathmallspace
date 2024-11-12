@@ -25,6 +25,14 @@ export const signInFormSchema = z.object({
   password: z.string().min(3, "Password must be at least 3 characters"),
 });
 
+export const JobSchema = z.object({
+  title: z.string().min(5, "Title must contain at least 5 characters").max(150),
+  description: z.string().min(5, "Description must be at least 5 characters"),
+  price: z.number().min(1, "Price must be at least 1"),
+  startDate: z.date().min(new Date(), "Start date must be in the future"),
+  deadline: z.date().min(new Date(), "Deadline must be in the future"),
+});
+
 export const signUpFormSchema = z
   .object({
     name: z.string().min(3, "Name must be at least 3 characters"),

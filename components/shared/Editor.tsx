@@ -139,13 +139,13 @@ export const Editor: React.FC<EditorProps> = () => {
     // eslint-disable-next-line no-unused-vars
 
     return (
-      <div className="w-full rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+      <div className="w-full rounded-lg border dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 p-4">
         <form>
           <div className="prose prose-stone dark:prose-invert">
-            <div id="editor" className="min-h-[500px]" />
-            <p className="text-sm text-gray-500">
+            <div id="editor" className="min-h-[500px] dark:text-white dark:[&_.ce-block__content]:text-white dark:[&_.ce-toolbar__content]:text-white dark:[&_.cdx-block]:text-white dark:[&_.ce-toolbar__plus]:bg-zinc-700 dark:[&_.ce-toolbar__settings-btn]:bg-zinc-700" />
+            <p className="text-sm text-gray-900 dark:text-white">
               Use{" "}
-              <kbd className="bg-muted rounded-md border px-1 text-xs uppercase">
+              <kbd className="bg-muted rounded-md dark:bg-gray-900 border px-1 text-xs uppercase">
                 Tab
               </kbd>{" "}
               to open the command menu.

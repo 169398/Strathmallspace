@@ -39,6 +39,14 @@ export interface GetTopInteractedTagsParams {
 export interface GetUserByIdParams {
   userId: string;
 }
+export interface CreateJobParams {
+  title: string;
+  description: string;
+  price: number;
+  startDate: Date;
+  deadline: Date;
+  authorId: string;
+}
 
 // Getting questions with pagination and filtering
 export interface GetQuestionParams {

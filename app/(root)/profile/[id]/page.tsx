@@ -11,6 +11,7 @@ import Link from "next/link";
 import React from "react";
 import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
+import MessageButton from "@/components/shared/MessageButton";
 
 export const metadata: Metadata = {
   title: "StrathSpace | Profile",
@@ -70,13 +71,20 @@ const Profile = async ({ params, searchParams }: any) => {
             )}
           </div>
         </div>
-        <div className="flex justify-end max-sm:mb-5 max-sm:w-full sm:mt-3">
-          {userSessionId === userInfo.user.id && (
+        <div className="flex justify-end gap-3 max-sm:mb-5 max-sm:w-full sm:mt-3">
+          {userSessionId === userInfo.user.id ? (
             <Link href="/profile/edit">
               <Button className="btn paragraph-medium text-invert-secondary min-h-[46px] min-w-[175px] px-4 py-3">
                 Edit Profile
               </Button>
             </Link>
+          ) : (
+            <MessageButton 
+              currentUserId={userSessionId} 
+              recipientId={userInfo.user.id}
+              icon="commentReply"
+              label="Message"
+            />
           )}
         </div>
       </div>

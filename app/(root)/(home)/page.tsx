@@ -50,7 +50,16 @@ export default async function Home({ searchParams }: any) {
 
   return (
     <main>
-      <div className="flex-between gap-4 ">
+      {session?.user?.name && (
+        <div className="mb-8">
+          <h2 className="h3-bold text-invert">👋 Welcome back, {session.user.name}</h2>
+          <p className="text-invert-secondary mt-2">
+            Find answers to your technical questions and help others answer theirs.
+          </p>
+        </div>
+      )}
+      
+      <div className="flex-between gap-4">
         <h1 className="sm:h1-bold h2-bold text-invert w-full">All Questions</h1>
         <Link href="/ask-question" className="flex justify-end max-sm:w-full">
           <Button className="primary-gradient !text-grey-100 max-h-[40px] px-4 sm:min-h-[46px] sm:px-4 sm:py-3">

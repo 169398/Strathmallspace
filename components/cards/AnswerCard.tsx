@@ -5,6 +5,7 @@ import Metric from "../shared/Metric";
 import { formatNumber, getTimeStamps } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 import EditDeleteAction from "../shared/EditDeleteAction";
+import MessageButton from "../shared/MessageButton";
 
 interface Props {
   id: string;
@@ -49,15 +50,23 @@ const AnswerCard = ({ id, question, author, upvotes, createdAt }: Props) => {
       </div>
 
       <div className="flex-between mt-6 w-full flex-wrap gap-3">
-        <Metric
-          imgUrl={author.picture}
-          alt="user avatar"
-          value={author.name}
-          title={` - answered ${getTimeStamps(createdAt)}`}
-          href={`/profile/${author.id}`}
-          textStyles="body-medium text-invert-secondary"
-          isAuthor
-        />
+        <div className="flex items-center gap-3">
+          <Metric
+            imgUrl={author.picture}
+            alt="user avatar"
+            value={author.name}
+            title={` - answered ${getTimeStamps(createdAt)}`}
+            href={`/profile/${author.id}`}
+            textStyles="body-medium text-invert-secondary"
+            isAuthor
+          />
+          <MessageButton 
+            currentUserId={session?.user?.id}
+            recipientId={author.id}
+            icon="commentReply"
+            label="Message"
+          />
+        </div>
 
         <div className="flex-center gap-3">
           <Metric
