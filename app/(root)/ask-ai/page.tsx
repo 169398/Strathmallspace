@@ -1,31 +1,31 @@
-'use client';
+"use client";
 
-import NoResult from '@/components/shared/NoResult';
-import ParseHtml from '@/components/shared/ParseHtml';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ReloadIcon } from '@radix-ui/react-icons';
-import { useState } from 'react';
-
+import NoResult from "@/components/shared/NoResult";
+import ParseHtml from "@/components/shared/ParseHtml";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ReloadIcon } from "@radix-ui/react-icons";
+import { useState } from "react";
 
 const Page = () => {
-  const [question, setQuestion] = useState('');
+  const [question, setQuestion] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [content, setContent] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [content, setContent] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const handelInputChange = (value: string) => {
     setQuestion(value);
   };
 
   const handleSubmit = async () => {
-    if (content === '') {
+    if (content === "") {
       setIsSubmitting(true);
-      setIsLoading(true);
+      setLoading(true);
       try {
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_SERVER_URL}/api/ask-ai`,
           {
-            method: 'POST',
+            method: "POST",
             body: JSON.stringify({ question }),
           }
         );
@@ -35,17 +35,17 @@ const Page = () => {
         const aiReplay = aiAnswer.reply;
 
         setContent(aiReplay);
-        
-        setQuestion('');
+
+        setQuestion("");
       } catch (error) {
         console.log(error);
         throw error;
       } finally {
         setIsSubmitting(false);
-        setIsLoading(false);
+        setLoading(false);
       }
     } else {
-      setContent('');
+      setContent("");
     }
   };
 
@@ -64,17 +64,17 @@ const Page = () => {
           onClick={handleSubmit}
           className="btn primary-gradient body-medium rounded-md p-5 text-grey-50"
         >
-          {content === '' ? 'Ask AI' : 'clear'}
+          {content === "" ? "Ask AI" : "clear"}
         </Button>
       </div>
       <div className=" overflow-y-auto">
         <div className="">
-          {content === '' && !isLoading ? (
+          {content === "" && !loading ? (
             <NoResult
               title="How can i help you?"
               description="Ask me anything related to programming and i will try to answer you.😊"
             />
-          ) : isLoading ? (
+          ) : loading ? (
             <div className="flex-center flex-col px-5">
               <ReloadIcon className="mt-3 h-7 w-7 animate-spin text-primary-400" />
               <p className="paragraph-regular text-invert-secondary mt-5">
