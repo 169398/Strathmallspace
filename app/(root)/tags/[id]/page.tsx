@@ -14,7 +14,9 @@ export const metadata: Metadata = {
 
 
 
-const Page = async ({ params, searchParams }: any) => {
+const Page = async (props: any) => {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
 
   const result = await getQuestionByTagId({
     tagId: params.id,

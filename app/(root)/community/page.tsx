@@ -14,7 +14,8 @@ export const metadata: Metadata = {
   description:
     "Explore all users on StrathSpace. Follow users and get updates on their activities.",
 };
-const Community = async ({ searchParams }: any) => {
+const Community = async (props: any) => {
+  const searchParams = await props.searchParams;
   const result = await getAllUsers({
     searchQuery: searchParams?.q,
     filter: searchParams?.filter,

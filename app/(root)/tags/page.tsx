@@ -13,7 +13,8 @@ export const metadata: Metadata = {
   description: "Questions associated with a tag.",
 };
 
-const Tags = async ({searchParams}: any) => {
+const Tags = async (props: any) => {
+  const searchParams = await props.searchParams;
   const result = await getAllTags({
     searchQuery: searchParams?.q,
     filter: searchParams?.filter,

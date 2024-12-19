@@ -9,7 +9,8 @@ export const metadata: Metadata = {
   description: "Edit a question.",
 };
 
-const page = async ({ params }: any) => {
+const page = async (props: any) => {
+  const params = await props.params;
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return null;

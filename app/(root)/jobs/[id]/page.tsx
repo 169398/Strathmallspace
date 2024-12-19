@@ -5,7 +5,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import  ParseHtml  from "@/components/shared/ParseHtml";
 
-export default async function JobDetail({ params }: { params: { id: string } }) {
+export default async function JobDetail(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await auth();
   const job = await getJobById(params.id);
   const isAuthor = session?.user?.id === job.author.id;

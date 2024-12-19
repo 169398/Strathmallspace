@@ -13,7 +13,8 @@ export const metadata: Metadata = {
   description: "Explore all questions you saved on StrathSpace.",
 };
 
-export default async function Home({ searchParams }: any) {
+export default async function Home(props: any) {
+  const searchParams = await props.searchParams;
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return null;
@@ -25,7 +26,6 @@ export default async function Home({ searchParams }: any) {
     page: searchParams?.page ? +searchParams.page : 1,
   })) as { question: any[]; isNext: boolean };
 
-  // Add console.log to check if questions are fetched correctly
   console.log(result.question);
 
   return (

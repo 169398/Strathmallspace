@@ -18,7 +18,9 @@ export const metadata: Metadata = {
   description: "View user profile.",
 };
 
-const Profile = async ({ params, searchParams }: any) => {
+const Profile = async (props: any) => {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const userInfo = await getUserInfo({ userId: params.id });
 
   // Get session from NextAuth

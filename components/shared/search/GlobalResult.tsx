@@ -9,13 +9,13 @@ import { globalSearch } from "@/lib/actions/general.action";
 const GlobalResult = () => {
   const searchParams = useSearchParams();
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   interface SearchResultItem {
     id: string;
     type: string;
     title: string;
   }
-  
+
   const [result, setResult] = useState<SearchResultItem[]>([]);
 
   const global = searchParams.get("global");
@@ -24,7 +24,7 @@ const GlobalResult = () => {
   useEffect(() => {
     const fetchResult = async () => {
       setResult([]);
-      setIsLoading(true);
+      setLoading(true);
 
       try {
         // Fetch global result (assuming `globalSearch` returns an object)
@@ -33,7 +33,7 @@ const GlobalResult = () => {
       } catch (error) {
         console.error("Error fetching global result:", error); // Better error logging
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
@@ -64,7 +64,7 @@ const GlobalResult = () => {
 
       <div className="space-y-5">
         <p className="text-invert paragraph-semibold px-5">Top Match</p>
-        {isLoading ? (
+        {loading ? (
           <div className="flex-center flex-col px-5">
             <Image
               src="/assets/animation/loading-animation.svg"
