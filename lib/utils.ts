@@ -1,14 +1,13 @@
-import { type ClassValue, clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
-import qs from 'query-string';
+import qs from "query-string";
 import { BADGE_CRITERIA } from "@/constants";
 import { BadgeCounts } from "@/types";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
-
 
 export const getTimeStamps = (createdAt: Date): string => {
   if (
@@ -51,14 +50,17 @@ export const getTimeStamps = (createdAt: Date): string => {
   }
 };
 
-export const formatNumber = (num: number, options?: { suffixes?: string[], separator?: string }): string => {
-  if (isNaN(num)) return '0'; // Return '0' if num is Na
+export const formatNumber = (
+  num: number,
+  options?: { suffixes?: string[]; separator?: string }
+): string => {
+  if (isNaN(num)) return "0"; // Return '0' if num is Na
 
-  if(num <= 0 ) return '0';
+  if (num <= 0) return "0";
 
-  const defaultSuffixes = ['', 'K', 'M', 'B', 'T', 'Q']; 
-  
-  const { suffixes = defaultSuffixes, separator = '' } = options || {};
+  const defaultSuffixes = ["", "K", "M", "B", "T", "Q"];
+
+  const { suffixes = defaultSuffixes, separator = "" } = options || {};
 
   const tier = Math.floor(Math.log10(num) / 3);
   if (tier === 0) return num.toString();
@@ -67,53 +69,61 @@ export const formatNumber = (num: number, options?: { suffixes?: string[], separ
   const scale = Math.pow(10, tier * 3);
   const scaled = num / scale;
 
-  const formatter = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
+  const formatter = new Intl.NumberFormat(undefined, {
+    maximumFractionDigits: 2,
+  });
   const formatted = formatter.format(scaled);
 
-  return formatted.replace(/\.(\d*?)0+$/, '.$1') + separator + suffix;
-}
+  return formatted.replace(/\.(\d*?)0+$/, ".$1") + separator + suffix;
+};
 
 export const getJoinedMonthYear = (date: Date): string => {
-  const month = date.toLocaleString('default', { month: 'short' });
+  const month = date.toLocaleString("default", { month: "short" });
   const year = date.getFullYear();
   return `Joined ${month} ${year}`;
 };
 
-
 interface UrlQueryParams {
-  params: string; 
+  params: string;
   key: string;
   value: string | null;
 }
 export const formUrlQuery = ({ params, key, value }: UrlQueryParams) => {
-
   const currentUrl = qs.parse(params);
 
   currentUrl[key] = value;
 
-  return qs.stringifyUrl({
-    url: window.location.pathname,
-    query: currentUrl,
-  }, {skipNull: true});
-}
+  return qs.stringifyUrl(
+    {
+      url: window.location.pathname,
+      query: currentUrl,
+    },
+    { skipNull: true }
+  );
+};
 
 interface RemoveKeysFromQueryParams {
   params: string;
   keys: string[];
 }
 
-export const removeKeysFromQuery = ({ params, keys }: RemoveKeysFromQueryParams) => {
+export const removeKeysFromQuery = ({
+  params,
+  keys,
+}: RemoveKeysFromQueryParams) => {
   const currentUrl = qs.parse(params);
- keys.forEach((key) => {
-  delete currentUrl[key];
- })
+  keys.forEach((key) => {
+    delete currentUrl[key];
+  });
 
-  return qs.stringifyUrl({
-    url: window.location.pathname,
-    query: currentUrl,
-  }, {skipNull: true});
-}
-
+  return qs.stringifyUrl(
+    {
+      url: window.location.pathname,
+      query: currentUrl,
+    },
+    { skipNull: true }
+  );
+};
 
 interface BadgeParams {
   criteria: {
@@ -126,21 +136,21 @@ export const assignBadges = (params: BadgeParams) => {
     GOLD: 0,
     SILVER: 0,
     BRONZE: 0,
-  }
-  const { criteria } = params; 
+  };
+  const { criteria } = params;
   criteria.forEach((item) => {
-    const { type, count} = item;
+    const { type, count } = item;
     const BadgeLevels: any = BADGE_CRITERIA[type];
 
     Object.keys(BadgeLevels).forEach((level: any) => {
-      if(count >= BadgeLevels[level]){
+      if (count >= BadgeLevels[level]) {
         badgeCounts[level as keyof BadgeCounts] += 1;
       }
-    })
-  })
+    });
+  });
 
   return badgeCounts;
-}
+};
 
 export function formatId(id: string) {
   return `..${id.substring(id.length - 6)}`;
@@ -224,8 +234,6 @@ export const formatError = (error: any): string => {
   }
 };
 
-
-
 export const formatNumberWithDecimal = (num: number): string => {
   const [int, decimal] = num.toString().split(".");
   return decimal ? `${int}.${decimal.padEnd(2, "0")}` : int; // 12.1 => 12.10
@@ -240,3 +248,8 @@ export const round2 = (value: number | string) => {
     throw new Error("value is not a number nor a string");
   }
 };
+
+export function isAdmin(email: string) {
+  const adminEmails = process.env.ADMIN_EMAILS?.split(",") || [];
+  return adminEmails.includes(email);
+}

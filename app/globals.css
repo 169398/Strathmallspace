@@ -48,6 +48,27 @@ body {
   .tab {
     @apply min-h-full dark:bg-primaryDark-800 bg-grey-100 text-grey-900 dark:text-secondary-600 dark:data-[state=active]:bg-primaryDark-700 data-[state=active]:bg-primary-100 data-[state=active]:text-primary-500 dark:data-[state=active]:text-primary-400 !important;
   }
+
+  .event-gradient {
+    @apply bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 transition-colors;
+  }
+
+  .animate-gradient {
+    background-size: 200% auto;
+    animation: gradient 4s linear infinite;
+  }
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% center;
+  }
+  50% {
+    background-position: 100% center;
+  }
+  100% {
+    background-position: 0% center;
+  }
 }
 
 .no-focus {
@@ -302,5 +323,81 @@ code {
 }
 
 .codex-editor__redactor {
-  padding-bottom: 0 !important;
+  padding-bottom: 100px !important;
+}
+
+@layer base {
+  :root {
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+  .dark {
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-gray-200;
+  }
+  body {
+    @apply bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100;
+  }
+}
+
+/* Editor Styles */
+.ce-block__content {
+  max-width: 100% !important;
+  margin: 0;
+}
+
+.ce-toolbar__content {
+  max-width: 100% !important;
+  margin: 0;
+}
+
+.ce-paragraph {
+  line-height: 1.6em;
+}
+
+.dark .ce-toolbar__plus,
+.dark .ce-toolbar__settings-btn {
+  color: inherit;
+  background-color: transparent;
+}
+
+.dark .ce-toolbar__plus:hover,
+.dark .ce-toolbar__settings-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .ce-inline-toolbar,
+.dark .ce-conversion-toolbar,
+.dark .ce-toolbar__settings-btn:hover {
+  background-color: #1f2937;
+  border-color: #374151;
+}
+
+.dark .ce-inline-toolbar__dropdown:hover,
+.dark .ce-inline-tool:hover,
+.dark .ce-conversion-tool:hover {
+  background-color: #374151;
+}
+
+.dark .ce-inline-toolbar__dropdown,
+.dark .ce-conversion-toolbar__label {
+  color: #e5e7eb;
 }

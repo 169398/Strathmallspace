@@ -297,3 +297,30 @@ export const messageRelations = relations(messages, ({ one }) => ({
     references: [user.id],
   }),
 }));
+
+// Add this to your existing schema.ts
+
+export const events = pgTable("events", {
+  id: uuid("id").defaultRandom().primaryKey().notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  content: text("content").notNull(), // For rich text editor content
+  posterUrl: text("poster_url"), // For the event poster image
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  location: varchar("location", { length: 255 }).notNull(),
+  status: varchar("status", { length: 50 }).default("pending").notNull(), // pending, approved, rejected
+  authorId: uuid("author_id")
+    .references(() => user.id)
+    .notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Add relations
+export const eventRelations = relations(events, ({ one }) => ({
+  author: one(user, {
+    fields: [events.authorId],
+    references: [user.id],
+  }),
+}));

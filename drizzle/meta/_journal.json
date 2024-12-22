@@ -85,6 +85,13 @@
       "when": 1731417594504,
       "tag": "0011_large_adam_warlock",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1734824751602,
+      "tag": "0012_burly_electro",
+      "breakpoints": true
     }
   ]
 }

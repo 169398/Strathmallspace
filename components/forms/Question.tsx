@@ -28,6 +28,7 @@ interface QuestionProps {
   type?: string;
   questionDetails?: string;
   userId: string;
+  
 }
 
 const Question = ({ type, userId, questionDetails }: QuestionProps) => {
@@ -256,11 +257,11 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
             render={({ field }) => (
               <FormItem className="flex w-full flex-col ">
                 <FormLabel className="paragraph-semibold text-invert">
-                  Question Title <span className="text-primary">*</span>
+                  Question Title <span className="text-primary dark:text-primary-main">*</span>
                 </FormLabel>
                 <FormControl className="mt-3.5">
                   <Input
-                    className="no-focus paragraph-regular input_background text-invert-secondary min-h-[56px] border"
+                    className="no-focus paragraph-regular input_background text-invert-secondary min-h-[56px] border dark:text-zinc-200"
                     placeholder="Ask a Question"
                     {...field}
                   />
@@ -280,10 +281,10 @@ const Question = ({ type, userId, questionDetails }: QuestionProps) => {
               <FormItem className="flex w-full flex-col gap-3">
                 <FormLabel className="paragraph-semibold text-invert">
                   Detailed explanation of your problem{" "}
-                  <span className="text-primary-main">*</span>
+                  <span className="text-primary-main dark:text-primary">*</span>
                 </FormLabel>
                 <FormControl className="mt-3.5">
-                  <div className="min-h-[500px] w-full rounded-lg border border-zinc-200 bg-background p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                  <div className="min-h-[500px] w-full rounded-lg border border-zinc-200 bg-background p-4 dark:border-slate-800 dark:bg-slate-900 dark:text-zinc-200">
                     <div className="prose prose-stone dark:prose-invert">
                       <div
                         id="editor"
