@@ -12,15 +12,15 @@ import {
   ClockIcon,
   MapPinIcon,
   CheckIcon,
-  Cross2Icon,
-} from "@radix-ui/react-icons";
+  CrossIcon,
+} from "lucide-react";
 
 interface AdminEventCardProps {
   event: {
     id: string;
     title: string;
     description: string;
-    posterUrl: string;
+    posterUrl: string | null;
     startDate: Date;
     endDate: Date;
     location: string;
@@ -98,7 +98,7 @@ const AdminEventCard = ({ event }: AdminEventCardProps) => {
                   disabled={loading}
                   className="bg-red-500 hover:bg-red-600"
                 >
-                  <Cross2Icon className="h-4 w-4" />
+                  <CrossIcon className="h-4 w-4" />
                 </Button>
               </div>
             )}
@@ -142,4 +142,4 @@ const AdminEventCard = ({ event }: AdminEventCardProps) => {
   );
 };
 
-export default AdminEventCard; 
+export default AdminEventCard;
