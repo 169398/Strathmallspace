@@ -55,3 +55,38 @@ export const updateUserSchema = updateProfileSchema.extend({
   id: z.string().min(1, "Id is required"),
   role: z.string().min(1, "Role is required"),
 });
+export const EventSchema = z
+  .object({
+    title: z.string().min(3, "Title must be at least 3 characters"),
+    description: z.string(),
+    content: z.string(),
+    location: z.string().min(3, "Location must be at least 3 characters"),
+    startDate: z.date({
+      required_error: "Start date is required",
+    }),
+    endDate: z.date({
+      required_error: "End date is required",
+    }),
+    poster: z
+      .any()
+      .optional()
+      .refine((files) => {
+        if (files instanceof FileList) {
+          return files.length > 0;
+        }
+        return true;
+      }, "Please select a poster image"),
+  })
+  .refine(
+    (data) => {
+      if (data.startDate && data.endDate) {
+        return data.endDate >= data.startDate;
+      }
+      return true;
+    },
+    {
+      message: "End date must be after start date",
+      path: ["endDate"],
+    }
+  );
+

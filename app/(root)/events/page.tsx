@@ -10,6 +10,13 @@ export default async function EventsPage() {
   const session = await auth();
   const events = await getEvents();
 
+  console.log("Events on page:", events);
+
+  const isAdmin =
+    session?.user?.email &&
+    (session.user.email.endsWith("@strathmore.edu") ||
+      session.user.email === "admin@example.com");
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header Section */}
@@ -19,7 +26,7 @@ export default async function EventsPage() {
             School Events
           </h1>
           <p className="text-gray-600 dark:text-gray-300 mt-2">
-            Discover upcoming events at Strathmore
+            {isAdmin ? "All events" : "Approved events"} at Strathmore
           </p>
         </div>
 
@@ -47,7 +54,14 @@ export default async function EventsPage() {
           ))}
         </div>
       ) : (
-        <NoEvents isLoggedIn={!!session?.user} />
+        <NoEvents
+          isLoggedIn={!!session?.user}
+          message={
+            isAdmin
+              ? "No events found. Create one to get started!"
+              : "No approved events yet. Check back later!"
+          }
+        />
       )}
     </div>
   );

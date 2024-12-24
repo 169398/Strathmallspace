@@ -9,9 +9,10 @@ import emptyAnimation from "@/public/animations/empty-calendar.json";
 
 interface NoEventsProps {
   isLoggedIn: boolean;
+  message?: string;
 }
 
-const NoEvents = ({ isLoggedIn }: NoEventsProps) => {
+const NoEvents = ({ isLoggedIn, message }: NoEventsProps) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -23,7 +24,7 @@ const NoEvents = ({ isLoggedIn }: NoEventsProps) => {
       </div>
       <h2 className="text-2xl font-bold mb-2">No Events Yet</h2>
       <p className="text-gray-600 dark:text-gray-400 mb-6">
-        Be the first to add an exciting event to our calendar!
+        {message || "Be the first to add an exciting event to our calendar!"}
       </p>
       {isLoggedIn && (
         <Link href="/events/create">

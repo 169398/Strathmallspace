@@ -1,6 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { createEvent } from "@/lib/actions/event.actions";
@@ -9,13 +12,22 @@ import { useRouter } from "next/navigation";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, ClockIcon } from "@radix-ui/react-icons";
-import EditorJS from "@editorjs/editorjs";
+import { CalendarIcon } from "@radix-ui/react-icons";
+import type EditorJS from "@editorjs/editorjs";
+import { EventSchema } from "@/lib/validation";
 
 interface Props {
   userId: string;
@@ -23,46 +35,66 @@ interface Props {
 
 const EventForm = ({ userId }: Props) => {
   const editorRef = useRef<EditorJS | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
-  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
-  const [isMounted, setIsMounted] = useState<boolean>(false);
-  const [startTime, setStartTime] = useState<string>(() => {
-    const now = new Date();
-    return `${String(now.getHours()).padStart(2, "0")}:${String(
-      now.getMinutes()
-    ).padStart(2, "0")}`;
-  });
-  const [endTime, setEndTime] = useState<string>(() => {
-    const now = new Date();
-    now.setHours(now.getHours() + 1);
-    return `${String(now.getHours()).padStart(2, "0")}:${String(
-      now.getMinutes()
-    ).padStart(2, "0")}`;
-  });
+  const [isMounted, setIsMounted] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const [file, setFile] = useState<File | null>(null);
+
+  const form = useForm<z.infer<typeof EventSchema>>({
+    resolver: zodResolver(EventSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      content: "",
+      location: "",
+      startDate: new Date(),
+      endDate: new Date(),
+      poster: undefined,
+    },
+  });
+
+  const { isSubmitting } = form.formState;
 
   const initializeEditor = useCallback(async () => {
-    const Header = (await import("@editorjs/header")).default;
-    const List = (await import("@editorjs/list")).default;
+    try {
+      const EditorJS = (await import("@editorjs/editorjs")).default;
+      const Header = (await import("@editorjs/header")).default;
+      const List = (await import("@editorjs/list")).default;
 
-    if (!editorRef.current) {
-      const editor = new EditorJS({
-        holder: "editor",
-        onReady() {
-          editorRef.current = editor;
-        },
-        placeholder: "Write your event details here...",
-        inlineToolbar: true,
-        data: { blocks: [] },
-        tools: {
-          header: Header,
-          list: List,
-        },
-      });
+      if (!editorRef.current) {
+        const editor = new EditorJS({
+          holder: "editor",
+          onReady() {
+            editorRef.current = editor;
+          },
+          onChange: async () => {
+            const blocks = await editor.save();
+            const content = JSON.stringify(blocks);
+            form.setValue("content", content);
+            form.setValue("description", content);
+          },
+          placeholder: "Write your event details here...",
+          inlineToolbar: true,
+          data: { blocks: [] },
+          tools: {
+            header: {
+              class: Header,
+              config: {
+                levels: [1, 2, 3],
+                defaultLevel: 2,
+              },
+            },
+            list: {
+              class: List,
+              inlineToolbar: true,
+            },
+          },
+        });
+      }
+    } catch (error) {
+      console.error("Failed to initialize editor:", error);
     }
-  }, []);
+  }, [form]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -71,12 +103,8 @@ const EventForm = ({ userId }: Props) => {
   }, []);
 
   useEffect(() => {
-    const init = async () => {
-      await initializeEditor();
-    };
-
     if (isMounted) {
-      init();
+      initializeEditor();
 
       return () => {
         if (editorRef.current) {
@@ -87,240 +115,247 @@ const EventForm = ({ userId }: Props) => {
     }
   }, [isMounted, initializeEditor]);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
-
+  const onSubmit = async (values: z.infer<typeof EventSchema>) => {
     try {
-      const formData = new FormData(e.currentTarget);
-
-      if (!editorRef.current) {
+      if (!file) {
         toast({
           title: "Error",
-          description: "Editor not initialized",
+          description: "Please select an event poster",
           variant: "destructive",
         });
         return;
       }
 
-      const blocks = await editorRef.current.save();
-      formData.append("content", JSON.stringify(blocks));
-      formData.append("description", JSON.stringify(blocks));
+      const formData = new FormData();
+      formData.append("title", values.title);
+      formData.append("description", values.description);
+      formData.append("content", values.content);
+      formData.append("location", values.location);
+      formData.append("startDate", values.startDate.toISOString());
+      formData.append("endDate", values.endDate.toISOString());
+      formData.append("authorId", userId);
+      formData.append("poster", file);
 
       await createEvent(formData);
 
       toast({
         title: "Success! 🎉",
         description: "Your event has been submitted for approval.",
-        variant: "default",
       });
 
       router.push("/events/success");
     } catch (error) {
+      console.error("Form submission error:", error);
       toast({
         title: "Error",
         description:
-          (error as Error).message || "Something went wrong. Please try again.",
+          error instanceof Error ? error.message : "Something went wrong",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleStartDateSelect = (date: Date | undefined) => {
-    if (date) {
-      const newDate = new Date(date);
-      const [hours, minutes] = startTime.split(":");
-      newDate.setHours(parseInt(hours), parseInt(minutes));
-      setStartDate(newDate);
-    } else {
-      setStartDate(undefined);
-    }
-  };
-
-  const handleEndDateSelect = (date: Date | undefined) => {
-    if (date) {
-      const newDate = new Date(date);
-      const [hours, minutes] = endTime.split(":");
-      newDate.setHours(parseInt(hours), parseInt(minutes));
-      setEndDate(newDate);
-    } else {
-      setEndDate(undefined);
-    }
-  };
-
-  const handleTimeChange = (
-    timeString: string,
-    date: Date | undefined,
-    setDate: (date: Date | undefined) => void,
-    setTime: (time: string) => void
-  ) => {
-    setTime(timeString);
-    if (date) {
-      const newDate = new Date(date);
-      const [hours, minutes] = timeString.split(":");
-      newDate.setHours(parseInt(hours), parseInt(minutes));
-      setDate(newDate);
-    }
-  };
+  if (!isMounted) {
+    return null;
+  }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium mb-2">Event Title</label>
-        <Input
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 ">
+        <FormField
+          control={form.control}
           name="title"
-          required
-          placeholder="Enter event title"
-          className="w-full dark:bg-gray-900"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-black dark:text-white">Event Title</FormLabel>
+              <FormControl className="dark:bg-slate-900 border-slate-700 text-slate-200 placeholder:text-slate-500 focus:border-slate-600">
+                <Input className="text-black dark:text-white" placeholder="Enter event title" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
 
-      <div>
-        <label className="block text-sm font-medium mb-2">Event Poster</label>
-        <Input
-          type="file"
+        <FormField
+          control={form.control}
           name="poster"
-          accept="image/*"
-          required
-          className="w-full cursor-pointer"
+          render={({ field: { value, onChange, ...field } }) => (
+            <FormItem>
+              <FormLabel className="text-black dark:text-white">Event Poster</FormLabel>
+              <FormControl className="dark:bg-slate-900 border-slate-700 text-slate-200 placeholder:text-slate-500 focus:border-slate-600 cursor-pointer">
+                <Input 
+                  className="text-black dark:text-white"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setFile(file);
+                      onChange(e.target.files);
+                    }
+                  }}
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+              {file && (
+                <p className="text-sm text-black dark:text-white cursor-pointer">
+                  Selected file: {file.name}
+                </p>
+              )}
+            </FormItem>
+          )}
         />
-      </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-2">
-            Start Date & Time
-          </label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !startDate && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {startDate ? (
-                  format(startDate, "PPP HH:mm")
-                ) : (
-                  <span>Pick date</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={startDate}
-                onSelect={handleStartDateSelect}
-                initialFocus
-              />
-              <input
-                type="time"
-                value={startTime}
-                className="w-full p-2 border-t dark:bg-gray-800 dark:text-gray-100"
-                onChange={(e) => {
-                  handleTimeChange(
-                    e.target.value,
-                    startDate,
-                    setStartDate,
-                    setStartTime
-                  );
-                }}
-              />
-            </PopoverContent>
-          </Popover>
-          <input
-            type="hidden"
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
             name="startDate"
-            value={startDate?.toISOString()}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-black dark:text-white">Start Date</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl className="dark:bg-slate-900 border-slate-700  placeholder:text-slate-500 text-black dark:text-white focus:border-slate-600 cursor-pointer">
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {field.value ? (
+                          format(field.value, "PPP")
+                        ) : (
+                          <span>Pick date</span>
+                        )}
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={(date) => {
+                        field.onChange(date);
+                        // If end date is before start date, update end date
+                        const endDate = form.getValues("endDate");
+                        if (date && endDate && date > endDate) {
+                          form.setValue("endDate", date);
+                        }
+                      }}
+                      disabled={(date) =>
+                        date < new Date(new Date().setHours(0, 0, 0, 0))
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="endDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-black dark:text-white">End Date</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {field.value ? (
+                          format(field.value, "PPP")
+                        ) : (
+                          <span>Pick date</span>
+                        )}
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      disabled={(date) => {
+                        const startDate = form.getValues("startDate");
+                        return date < (startDate || new Date());
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-2">End Date</label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !endDate && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {endDate ? (
-                  format(endDate, "PPP HH:mm")
-                ) : (
-                  <span>Pick date</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={endDate}
-                onSelect={handleEndDateSelect}
-                initialFocus
-              />
-              <input
-                type="time"
-                value={endTime}
-                className="w-full p-2 border-t dark:bg-gray-800 dark:text-gray-100"
-                onChange={(e) => {
-                  handleTimeChange(
-                    e.target.value,
-                    endDate,
-                    setEndDate,
-                    setEndTime
-                  );
-                }}
-              />
-            </PopoverContent>
-          </Popover>
-          <input type="hidden" name="endDate" value={endDate?.toISOString()} />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-2">Location</label>
-        <Input
+        <FormField
+          control={form.control}
           name="location"
-          required
-          placeholder="Event location"
-          className="w-full dark:bg-gray-900"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-black dark:text-white">Location</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="Enter event location" 
+                  className="dark:bg-slate-900 border-slate-700 text-slate-200 placeholder:text-slate-500 focus:border-slate-600"
+                  {...field} 
+                />
+              </FormControl>
+              <FormMessage className="text-red-400" />
+            </FormItem>
+          )}
         />
-      </div>
 
-      <div>
-        <label className="block text-sm font-medium mb-2">Description</label>
-        <div className="min-h-[200px] w-full rounded-lg border border-zinc-200 bg-background p-4 dark:border-zinc-700 dark:bg-zinc-900">
-          <div className="prose prose-stone dark:prose-invert">
-            <div
-              id="editor"
-              className="min-h-[200px] text-invert dark:text-zinc-200"
-            />
-          </div>
-        </div>
-      </div>
+        <FormField
+          control={form.control}
+          name="content"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-black dark:text-white">Description</FormLabel>
+              <FormControl>
+                <div className="min-h-[200px] w-full rounded-lg border border-zinc-200 bg-background p-4 dark:border-slate-700 dark:bg-slate-900">
+                  <div className="prose prose-stone dark:prose-invert">
+                    <div
+                      id="editor"
+                      className="min-h-[200px] text-invert dark:text-zinc-200"
+                    />
+                  </div>
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <Button
-        type="submit"
-        className="w-full event-gradient"
-        disabled={loading}
-      >
-        {loading ? (
-          <div className="flex items-center">
-            <span className="animate-spin mr-2">⏳</span>
-            Submitting...
-          </div>
-        ) : (
-          "Submit Event for Approval"
-        )}
-      </Button>
-    </form>
+        <Button
+          type="submit"
+          className="w-full event-gradient"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <div className="flex items-center">
+              <span className="animate-spin mr-2">⏳</span>
+              Submitting...
+            </div>
+          ) : (
+            "Submit Event for Approval"
+          )}
+        </Button>
+      </form>
+    </Form>
   );
 };
 

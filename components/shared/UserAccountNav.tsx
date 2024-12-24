@@ -26,12 +26,12 @@ export function UserAccountNav({ user }: UserAccountNavProps) {
           className='size-8'
         />
       </DropdownMenuTrigger>
-      <DropdownMenuContent className='bg-white' align='end'>
+      <DropdownMenuContent className='bg-white dark:bg-gray-800' align='end'>
         <div className='flex items-center justify-start gap-2 p-2'>
           <div className='flex flex-col space-y-1 leading-none'>
             {user.name && <p className='font-medium'>{user.name}</p>}
             {user.email && (
-              <p className='w-[200px] truncate text-sm text-gray-500'>
+              <p className='w-[200px] truncate text-sm text-gray-500 dark:text-white'>
                 {user.email}
               </p>
             )}
@@ -47,7 +47,7 @@ export function UserAccountNav({ user }: UserAccountNavProps) {
         </DropdownMenuItem> */}
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          className='cursor-pointer'
+          className='cursor-pointer dark:text-white'
           onSelect={(event) => {
             event.preventDefault()
             signOut({
